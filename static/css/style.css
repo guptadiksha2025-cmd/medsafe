@@ -1,0 +1,185 @@
+/* MedSafe — Modern Healthcare Safety UI/UX Styles */
+
+:root {
+    --primary-color: #0284c7;
+    --primary-hover: #0369a1;
+    --teal-color: #0f766e;
+    --teal-hover: #115e59;
+    --bg-light: #f8fafc;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    color: var(--text-dark);
+    background-color: var(--bg-light);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Typography & Helpers ────────────────────────────────────────── */
+.tracking-tight { letter-spacing: -0.025em; }
+.tracking-wider { letter-spacing: 0.05em; }
+.letter-spaced  { letter-spacing: 0.06em; font-size: 0.72rem; }
+.leading-relaxed { line-height: 1.625; }
+.max-w-600      { max-width: 600px; }
+.cursor-pointer { cursor: pointer; }
+
+.shadow-xs { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+
+/* ── Brand colors ────────────────────────────────────────────────── */
+.text-teal { color: var(--teal-color) !important; }
+.bg-teal   { background-color: var(--teal-color) !important; }
+
+.bg-teal-subtle { background-color: #f0fdfa !important; }
+.text-teal-emphasis { color: #134e4a !important; }
+.border-teal-subtle { border-color: #ccfbf1 !important; }
+
+.btn-outline-teal {
+    color: var(--teal-color);
+    border-color: var(--teal-color);
+}
+.btn-outline-teal:hover {
+    color: #fff;
+    background-color: var(--teal-color);
+    border-color: var(--teal-color);
+}
+
+.brand-icon-box {
+    width: 38px;
+    height: 38px;
+}
+
+/* ── Landing Page Hero & Workflow ────────────────────────────────── */
+.hero-section {
+    background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
+}
+
+.workflow-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flow-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.flow-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ── Drag & Drop Zone ────────────────────────────────────────────── */
+.drop-zone {
+    border-color: #cbd5e1 !important;
+    background-color: #f8fafc;
+    transition: border-color 0.2s, background-color 0.2s;
+    cursor: pointer;
+}
+.drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--primary-color) !important;
+    background-color: #f0f9ff;
+}
+.drop-zone-input {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* ── Reason Radio Card ───────────────────────────────────────────── */
+.reason-card {
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+    transition: all 0.2s ease;
+}
+.reason-card:hover {
+    border-color: var(--primary-color);
+    background-color: #f8fafc;
+}
+.reason-card input[type="radio"]:checked + div {
+    color: var(--primary-color);
+}
+
+/* ── Result Page Theme ───────────────────────────────────────────── */
+.result-hero {
+    border-left: 6px solid transparent;
+}
+.result-green  { background: #ecfdf5; border-color: #10b981; }
+.result-yellow { background: #fffbeb; border-color: #f59e0b; }
+.result-red    { background: #fef2f2; border-color: #ef4444; }
+.result-gray   { background: #f8fafc; border-color: #6b7280; border: 1px solid #e2e8f0; border-left: 6px solid #6b7280; }
+
+.result-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+}
+.result-green  .result-icon { color: #10b981; }
+.result-yellow .result-icon { color: #d97706; }
+.result-red    .result-icon { color: #ef4444; }
+.result-gray   .result-icon { color: #6b7280; }
+
+.result-dl dt {
+    font-weight: 500;
+    padding-top: 0.35rem;
+}
+.result-dl dd {
+    padding-top: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+
+.result-disclaimer {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+
+.result-summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.result-summary::-webkit-details-marker { display: none; }
+.result-summary::before {
+    content: '\25B6';
+    font-size: 0.65rem;
+    transition: transform 0.2s;
+    color: #94a3b8;
+}
+details[open] .result-summary::before { transform: rotate(90deg); }
+
+/* ── Processing Step Items ───────────────────────────────────────── */
+.step-item {
+    transition: all 0.3s ease;
+    opacity: 0.45;
+}
+.step-item.active {
+    opacity: 1;
+    font-weight: 600;
+}
+.step-item.done i {
+    color: #10b981 !important;
+}
+
+/* ── Scenario Card in Demo Mode ──────────────────────────────────── */
+.scenario-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.scenario-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ── Mobile Tweaks ───────────────────────────────────────────────── */
+@media (max-width: 575px) {
+    .result-hero { padding: 1.25rem !important; }
+    .result-icon { font-size: 1.75rem; }
+    .display-4 { font-size: 2.25rem; }
+}

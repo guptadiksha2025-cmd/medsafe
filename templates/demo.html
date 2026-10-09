@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Demo Mode — MedSafe{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10">
+
+            {# Header #}
+            <div class="text-center mb-5">
+                <span class="badge bg-teal-subtle text-teal border border-teal-subtle px-3 py-2 rounded-pill mb-2 fw-semibold">
+                    <i class="bi bi-play-circle-fill me-1"></i> Interactive Showcase
+                </span>
+                <h1 class="display-6 fw-bold text-dark mb-2">MedSafe Demo Scenarios</h1>
+                <p class="lead text-muted fs-6 mb-0">
+                    Test the 4 core post-discharge medication safety outcomes powered by the Safety Decision Engine.
+                </p>
+            </div>
+
+            {# Safety banner #}
+            <div class="alert alert-light border shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center gap-3">
+                <i class="bi bi-cpu fs-3 text-primary flex-shrink-0"></i>
+                <div class="small text-muted">
+                    <strong>Live Safety Engine:</strong> These scenarios execute the <em>exact same deterministic Safety Engine, demo database lookup, and AI explanation pipeline</em> as the patient workflow.
+                </div>
+            </div>
+
+            {# Scenarios Grid #}
+            <div class="row g-4 mb-5">
+                {% for key, scenario in scenarios.items() %}
+                <div class="col-12 col-md-6">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 scenario-card overflow-hidden">
+                        <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark">Scenario {{ scenario.id }}</span>
+                            <span class="badge bg-{{ scenario.badge_class }} px-3 py-2">
+                                {{ scenario.badge }}
+                            </span>
+                        </div>
+                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <h2 class="h5 fw-bold text-dark mb-2">{{ scenario.title }}</h2>
+                                <p class="small text-muted mb-3">{{ scenario.description }}</p>
+
+                                <div class="bg-light rounded-3 p-3 mb-3 small">
+                                    <div class="mb-2">
+                                        <span class="text-muted fw-semibold">Discharge Rx:</span>
+                                        <div class="text-dark">
+                                            {% for item in scenario.prescription_items %}
+                                            <div>• {{ item.name }} {{ item.strength }} <span class="text-muted">({{ item.dosage }})</span></div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <hr class="my-2 text-muted opacity-25">
+                                    <div>
+                                        <span class="text-muted fw-semibold">Found at Home:</span>
+                                        <div class="fw-bold text-primary">{{ scenario.old_medicine }} {{ scenario.strength }}</div>
+                                        <div class="text-muted fst-italic">"{{ scenario.reason }}"</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="small fw-semibold text-{{ scenario.badge_class }} mb-3">
+                                    <i class="bi bi-arrow-right-circle me-1"></i>{{ scenario.expected_outcome }}
+                                </div>
+                                <a href="{{ url_for('demo.run', scenario_id=scenario.id) }}" class="btn btn-outline-{{ scenario.badge_class }} w-100 rounded-3 fw-semibold">
+                                    <i class="bi bi-lightning-charge me-1"></i>Run Scenario {{ scenario.id }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {# Interactive Walkthrough note #}
+            <div class="card border-0 bg-primary-subtle text-primary rounded-4 p-4 text-center">
+                <h3 class="h6 fw-bold mb-1">Want to test with your own custom medicine or prescription?</h3>
+                <p class="small mb-3 text-primary-emphasis">Start from the beginning to test image upload, manual input, and live checking.</p>
+                <div>
+                    <a href="{{ url_for('prescription.index') }}" class="btn btn-primary px-4 rounded-3 fw-semibold">
+                        <i class="bi bi-plus-circle me-1"></i>Start Custom Check
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

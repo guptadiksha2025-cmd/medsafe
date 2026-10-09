@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}MedSafe — Check Before You Take{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section py-5 py-lg-6 position-relative overflow-hidden">
+    <div class="container py-4">
+        <div class="row align-items-center justify-content-center text-center">
+            <div class="col-12 col-lg-9">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-white border rounded-pill shadow-xs mb-3">
+                    <span class="badge bg-primary rounded-pill">Safety Checkpoint</span>
+                    <span class="small text-muted fw-medium">Post-Discharge Care</span>
+                </div>
+                <h1 class="display-4 fw-bold text-dark tracking-tight mb-2">
+                    <span class="text-primary">MedSafe</span>
+                </h1>
+                <p class="fs-3 fw-semibold text-secondary fst-italic mb-3">
+                    "Check Before You Take"
+                </p>
+                <p class="fs-5 text-dark fw-medium mb-2">
+                    Your medication safety checkpoint after hospital discharge.
+                </p>
+                <p class="text-muted fs-6 mb-4 max-w-600 mx-auto">
+                    Compare an old medicine with your current discharge plan before you consider reusing it.
+                </p>
+                <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
+                    <a href="{{ url_for('prescription.index') }}" class="btn btn-primary btn-lg px-4 py-3 rounded-pill fw-semibold shadow">
+                        <i class="bi bi-shield-check me-2"></i>Start Medication Check
+                    </a>
+                    <a href="{{ url_for('demo.index') }}" class="btn btn-outline-teal btn-lg px-4 py-3 rounded-pill fw-semibold shadow-xs">
+                        <i class="bi bi-play-circle me-2"></i>Try Demo Scenarios
+                    </a>
+                </div>
+                <div class="small text-muted bg-white bg-opacity-75 border rounded-3 p-2 max-w-600 mx-auto">
+                    <i class="bi bi-info-circle me-1 text-primary"></i>
+                    MedSafe provides decision support. It does not diagnose, prescribe, or replace a doctor or pharmacist.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Visual Workflow Representation -->
+<section class="py-5 bg-white border-top border-bottom">
+    <div class="container py-3">
+        <div class="text-center mb-5">
+            <h2 class="h4 fw-bold text-dark mb-2">How MedSafe Works</h2>
+            <p class="text-muted small">A straightforward 3-step safety verification for patients at home.</p>
+        </div>
+
+        <div class="row g-4 align-items-center justify-content-center">
+            <!-- Step 1: Input -->
+            <div class="col-12 col-md-3">
+                <div class="card h-100 border-0 shadow-sm rounded-4 text-center p-3 flow-card">
+                    <div class="workflow-icon bg-primary-subtle text-primary mx-auto mb-3">
+                        <i class="bi bi-file-earmark-medical fs-3"></i>
+                    </div>
+                    <h3 class="h6 fw-bold mb-1">1. Current Prescription</h3>
+                    <p class="text-muted small mb-0">Upload or confirm your hospital discharge medication list.</p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-1 text-center d-none d-md-block text-muted fs-4">
+                <i class="bi bi-plus-lg text-secondary"></i>
+            </div>
+
+            <!-- Step 2: Old Medicine -->
+            <div class="col-12 col-md-3">
+                <div class="card h-100 border-0 shadow-sm rounded-4 text-center p-3 flow-card">
+                    <div class="workflow-icon bg-teal-subtle text-teal mx-auto mb-3">
+                        <i class="bi bi-capsule fs-3"></i>
+                    </div>
+                    <h3 class="h6 fw-bold mb-1">2. Old Medicine</h3>
+                    <p class="text-muted small mb-0">Scan or enter the medicine you found at home.</p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-1 text-center d-none d-md-block text-muted fs-4">
+                <i class="bi bi-arrow-right text-secondary"></i>
+            </div>
+
+            <!-- Step 3: Safety Check & Next Step -->
+            <div class="col-12 col-md-3">
+                <div class="card h-100 border-0 shadow-sm rounded-4 text-center p-3 flow-card border-primary-subtle bg-primary-subtle bg-opacity-25">
+                    <div class="workflow-icon bg-success-subtle text-success mx-auto mb-3">
+                        <i class="bi bi-shield-check fs-3"></i>
+                    </div>
+                    <h3 class="h6 fw-bold mb-1">3. Safety Check</h3>
+                    <p class="text-muted small mb-0">Deterministic comparison &amp; clear recommended next steps.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Trust & Safety Principles -->
+<section class="py-5 bg-body-tertiary">
+    <div class="container py-3">
+        <div class="row g-4 justify-content-center">
+            <div class="col-12 col-md-4">
+                <div class="card h-100 border-0 bg-white shadow-xs rounded-4 p-4">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <i class="bi bi-shield-lock text-primary fs-4"></i>
+                        <h4 class="h6 fw-bold mb-0">Not a Prescriber</h4>
+                    </div>
+                    <p class="small text-muted mb-0">
+                        MedSafe never independently prescribes or declares a medicine medically safe. It checks for duplicates and matches.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <div class="card h-100 border-0 bg-white shadow-xs rounded-4 p-4">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <i class="bi bi-person-check text-teal fs-4"></i>
+                        <h4 class="h6 fw-bold mb-0">Professional Escalation</h4>
+                    </div>
+                    <p class="small text-muted mb-0">
+                        When uncertainty or duplicate risks are identified, the system immediately directs the patient to pharmacist or physician review.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <div class="card h-100 border-0 bg-white shadow-xs rounded-4 p-4">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <i class="bi bi-eye text-primary fs-4"></i>
+                        <h4 class="h6 fw-bold mb-0">Patient Review First</h4>
+                    </div>
+                    <p class="small text-muted mb-0">
+                        OCR extracts text for assistance, but the patient always reviews and confirms the medicine details before evaluation.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

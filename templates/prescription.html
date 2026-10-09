@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Your Current Prescription — MedSafe{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+
+            {# Breadcrumbs / Step Tracker #}
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary rounded-circle p-2 px-3 fw-bold">1</span>
+                    <span class="fw-semibold text-primary">Discharge Prescription</span>
+                </div>
+                <div class="text-muted small">Step 1 of 2</div>
+            </div>
+
+            <!-- Page Header -->
+            <div class="mb-4">
+                <h1 class="h3 fw-bold text-dark mb-2">
+                    <i class="bi bi-file-earmark-medical text-primary me-1"></i> Your Current Prescription
+                </h1>
+                <p class="text-muted fs-6 mb-0">
+                    Upload your latest hospital discharge prescription so MedSafe can understand your current medication plan.
+                </p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3" role="alert">
+                        <i class="bi bi-info-circle me-1"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endwith %}
+
+            <!-- Upload / Scan Card -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                <div class="card-header bg-white border-bottom p-3">
+                    <h2 class="h6 fw-bold mb-0 text-dark">
+                        <i class="bi bi-upload text-primary me-1"></i> Upload Prescription Document / Image
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('prescription.upload') }}" method="POST" enctype="multipart/form-data" id="rx-upload-form">
+                        
+                        <!-- Drag & Drop Zone -->
+                        <div class="drop-zone border border-2 border-dashed rounded-4 p-4 text-center mb-3 bg-light position-relative" id="rx-drop-zone">
+                            <input type="file" class="drop-zone-input" id="prescription_image" name="prescription_image" accept=".png,.jpg,.jpeg,.webp,.pdf">
+                            <div class="drop-zone-prompt">
+                                <i class="bi bi-cloud-arrow-up text-primary display-6 mb-2 d-block"></i>
+                                <div class="fw-semibold text-dark mb-1">Click to select or drag prescription file here</div>
+                                <div class="small text-muted">Supports <strong>PDF documents</strong> (discharge summaries) and <strong>PNG, JPG, WebP</strong> photos</div>
+                            </div>
+                            <!-- Image / PDF Preview inside Dropzone -->
+                            <div id="rx-image-preview" class="d-none mt-2">
+                                <div id="rx-pdf-badge" class="d-none py-3">
+                                    <i class="bi bi-file-earmark-pdf text-danger display-4 mb-2 d-block"></i>
+                                    <span class="badge bg-danger fs-6 px-3 py-2">PDF Document Ready</span>
+                                </div>
+                                <img id="rx-preview-img" src="" alt="Prescription preview" class="img-thumbnail rounded-3 shadow-xs d-none" style="max-height: 200px;">
+                                <div class="mt-2">
+                                    <span id="rx-filename" class="badge bg-secondary me-2"></span>
+                                    <button type="button" id="rx-clear-image" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle me-1"></i>Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Processing Indicator (hidden until submit) -->
+                        <div id="rx-ocr-status" class="alert alert-info d-none align-items-center gap-2 rounded-3 mb-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span class="small fw-medium">Extracting text from prescription document/image...</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Upload digital PDF summary or photo</span>
+                            <button type="submit" class="btn btn-outline-primary rounded-3 px-4 fw-semibold" id="rx-scan-btn">
+                                <i class="bi bi-eye me-1"></i>Scan / Extract Text
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- OCR Raw Text (if scanned) -->
+            {% if ocr and ocr.raw_text %}
+            <div class="card border-0 shadow-sm rounded-4 mb-4 border-start border-4 border-info">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 fw-bold text-dark mb-0">
+                            <i class="bi bi-file-text text-info me-1"></i> OCR Raw Extracted Text
+                        </h2>
+                        <span class="badge bg-{{ 'danger' if ocr.is_low_confidence else 'success' }}">
+                            Confidence: {{ ocr.confidence }}%
+                        </span>
+                    </div>
+                    <p class="small text-muted mb-2">
+                        OCR text is untrusted input. MedSafe has populated the editable form below for you to verify.
+                    </p>
+                    <pre class="bg-light rounded-3 p-3 mb-0 small text-dark font-monospace" style="white-space: pre-wrap;">{{ ocr.raw_text }}</pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Review & Confirm Prescription Form -->
+            <form action="{{ url_for('prescription.save') }}" method="POST" id="prescription-save-form" class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                    <h2 class="h6 fw-bold mb-0 text-dark">
+                        <i class="bi bi-card-checklist text-primary me-1"></i> Review &amp; Confirm Current Medications
+                    </h2>
+                    <span class="badge bg-primary-subtle text-primary">Editable</span>
+                </div>
+                <div class="card-body p-4">
+                    <p class="small text-muted mb-3">
+                        Review the current discharge medication list below. You can edit, add, or remove medicines so MedSafe accurately compares against your plan.
+                    </p>
+
+                    <!-- Textarea for freeform or parsed prescription text -->
+                    <div class="mb-4">
+                        <label for="prescription_text" class="form-label fw-semibold text-dark small text-uppercase">
+                            Discharge Medication List
+                        </label>
+                        <textarea class="form-control rounded-3 p-3 font-monospace small" id="prescription_text" name="prescription_text"
+                                  rows="6" placeholder="e.g.&#10;1. Amoxicillin 500mg — 1 capsule 3 times daily&#10;2. Pantoprazole 40mg — 1 tablet before breakfast" required>{{ ocr.raw_text if ocr and ocr.raw_text else saved_text }}</textarea>
+                        <div class="form-text small">Enter each current medicine on a new line with strength/dosage if known.</div>
+                    </div>
+
+                    <!-- Quick Add Helper -->
+                    <div class="p-3 bg-light rounded-3 mb-4">
+                        <div class="small fw-semibold text-dark mb-2">Quick Add Medicine:</div>
+                        <div class="row g-2">
+                            <div class="col-12 col-md-5">
+                                <input type="text" id="quick-med-name" class="form-control form-control-sm rounded-2" placeholder="Medicine name (e.g. Paracetamol)">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <input type="text" id="quick-med-strength" class="form-control form-control-sm rounded-2" placeholder="Strength (e.g. 500mg)">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button type="button" id="quick-add-btn" class="btn btn-outline-primary btn-sm w-100 rounded-2">
+                                    <i class="bi bi-plus-circle me-1"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary rounded-3 px-3">
+                            <i class="bi bi-arrow-left me-1"></i>Back
+                        </a>
+                        <button type="submit" class="btn btn-primary rounded-3 px-5 py-2 fw-semibold shadow-sm">
+                            Save &amp; Continue <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+
+            {% if saved_text %}
+            <div class="card border-0 bg-success-subtle text-success rounded-4 p-4 shadow-xs">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-check-circle-fill fs-4 flex-shrink-0"></i>
+                    <div>
+                        <div class="fw-bold fs-6">Prescription saved in current session.</div>
+                        <p class="small text-success-emphasis mb-3">You can now proceed to check any old medicine found at home against this plan.</p>
+                        <a href="{{ url_for('medicine.check') }}" class="btn btn-success btn-sm rounded-pill px-4 fw-semibold shadow-xs">
+                            <i class="bi bi-capsule me-1"></i>Continue to Medicine Check
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

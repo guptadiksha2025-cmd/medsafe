@@ -1,0 +1,162 @@
+[
+  {
+    "medicine_name": "Amoxicillin",
+    "active_ingredient": "Amoxicillin",
+    "strength": "500 mg",
+    "dosage_form": "Capsule",
+    "category": "Antibiotic",
+    "common_identifiers": ["Amoxil", "Trimox", "Amoxicillin 500", "Amoxicillin 500mg"]
+  },
+  {
+    "medicine_name": "Amoxicillin",
+    "active_ingredient": "Amoxicillin",
+    "strength": "250 mg",
+    "dosage_form": "Capsule",
+    "category": "Antibiotic",
+    "common_identifiers": ["Amoxil 250", "Amoxicillin 250", "Amoxicillin 250mg"]
+  },
+  {
+    "medicine_name": "Co-Amoxiclav",
+    "active_ingredient": "Amoxicillin",
+    "strength": "625 mg",
+    "dosage_form": "Tablet",
+    "category": "Antibiotic",
+    "common_identifiers": ["Augmentin", "Augmentin 625", "Co-Amoxiclav 625", "Amoxiclav"]
+  },
+  {
+    "medicine_name": "Paracetamol",
+    "active_ingredient": "Paracetamol",
+    "strength": "500 mg",
+    "dosage_form": "Tablet",
+    "category": "Analgesic / Antipyretic",
+    "common_identifiers": ["Crocin", "Calpol", "Dolo 650", "Paracetamol 500", "Tylenol", "Panadol"]
+  },
+  {
+    "medicine_name": "Paracetamol",
+    "active_ingredient": "Paracetamol",
+    "strength": "650 mg",
+    "dosage_form": "Tablet",
+    "category": "Analgesic / Antipyretic",
+    "common_identifiers": ["Dolo 650", "Crocin 650", "Paracetamol 650"]
+  },
+  {
+    "medicine_name": "Ibuprofen",
+    "active_ingredient": "Ibuprofen",
+    "strength": "400 mg",
+    "dosage_form": "Tablet",
+    "category": "NSAID / Anti-inflammatory",
+    "common_identifiers": ["Brufen", "Advil", "Nurofen", "Ibuprofen 400", "Ibuprofen 400mg"]
+  },
+  {
+    "medicine_name": "Metformin",
+    "active_ingredient": "Metformin",
+    "strength": "500 mg",
+    "dosage_form": "Tablet",
+    "category": "Antidiabetic",
+    "common_identifiers": ["Glucophage", "Glycomet", "Metformin 500", "Glyciphage"]
+  },
+  {
+    "medicine_name": "Metformin",
+    "active_ingredient": "Metformin",
+    "strength": "1000 mg",
+    "dosage_form": "Tablet",
+    "category": "Antidiabetic",
+    "common_identifiers": ["Glucophage 1000", "Metformin 1000", "Glycomet 1000"]
+  },
+  {
+    "medicine_name": "Atorvastatin",
+    "active_ingredient": "Atorvastatin",
+    "strength": "10 mg",
+    "dosage_form": "Tablet",
+    "category": "Statin / Cholesterol",
+    "common_identifiers": ["Lipitor", "Atorva", "Atorvastatin 10", "Storvas 10"]
+  },
+  {
+    "medicine_name": "Atorvastatin",
+    "active_ingredient": "Atorvastatin",
+    "strength": "20 mg",
+    "dosage_form": "Tablet",
+    "category": "Statin / Cholesterol",
+    "common_identifiers": ["Lipitor 20", "Atorva 20", "Atorvastatin 20", "Storvas 20"]
+  },
+  {
+    "medicine_name": "Pantoprazole",
+    "active_ingredient": "Pantoprazole",
+    "strength": "40 mg",
+    "dosage_form": "Tablet",
+    "category": "Proton Pump Inhibitor",
+    "common_identifiers": ["Pantop", "Pan 40", "Pantocid", "Protonix", "Pantoprazole 40"]
+  },
+  {
+    "medicine_name": "Omeprazole",
+    "active_ingredient": "Omeprazole",
+    "strength": "20 mg",
+    "dosage_form": "Capsule",
+    "category": "Proton Pump Inhibitor",
+    "common_identifiers": ["Prilosec", "Omez", "Losec", "Omeprazole 20", "Omez 20"]
+  },
+  {
+    "medicine_name": "Cetirizine",
+    "active_ingredient": "Cetirizine",
+    "strength": "10 mg",
+    "dosage_form": "Tablet",
+    "category": "Antihistamine",
+    "common_identifiers": ["Zyrtec", "Cetzine", "Alerid", "Cetirizine 10", "Allercet"]
+  },
+  {
+    "medicine_name": "Amlodipine",
+    "active_ingredient": "Amlodipine",
+    "strength": "5 mg",
+    "dosage_form": "Tablet",
+    "category": "Calcium Channel Blocker / Antihypertensive",
+    "common_identifiers": ["Norvasc", "Stamlo", "Amlodac", "Amlodipine 5", "Amlong"]
+  },
+  {
+    "medicine_name": "Amlodipine",
+    "active_ingredient": "Amlodipine",
+    "strength": "10 mg",
+    "dosage_form": "Tablet",
+    "category": "Calcium Channel Blocker / Antihypertensive",
+    "common_identifiers": ["Norvasc 10", "Amlodipine 10", "Amlong 10"]
+  },
+  {
+    "medicine_name": "Azithromycin",
+    "active_ingredient": "Azithromycin",
+    "strength": "500 mg",
+    "dosage_form": "Tablet",
+    "category": "Antibiotic / Macrolide",
+    "common_identifiers": ["Zithromax", "Azee", "Azifast", "Azithromycin 500", "Z-Pack"]
+  },
+  {
+    "medicine_name": "Metronidazole",
+    "active_ingredient": "Metronidazole",
+    "strength": "400 mg",
+    "dosage_form": "Tablet",
+    "category": "Antibiotic / Antiprotozoal",
+    "common_identifiers": ["Flagyl", "Metrogyl", "Metronidazole 400", "Metrozine"]
+  },
+  {
+    "medicine_name": "Aspirin",
+    "active_ingredient": "Aspirin",
+    "strength": "75 mg",
+    "dosage_form": "Tablet",
+    "category": "Antiplatelet / Analgesic",
+    "common_identifiers": ["Ecosprin", "Aspirin 75", "Baby Aspirin", "Loprin 75"]
+  },
+  {
+    "medicine_name": "Diclofenac",
+    "active_ingredient": "Diclofenac",
+    "strength": "50 mg",
+    "dosage_form": "Tablet",
+    "category": "NSAID / Anti-inflammatory",
+    "common_identifiers": ["Voveran", "Voltaren", "Diclofenac 50", "Diclomol"]
+  },
+  {
+    "medicine_name": "Ranitidine",
+    "active_ingredient": "Ranitidine",
+    "strength": "150 mg",
+    "dosage_form": "Tablet",
+    "category": "H2 Blocker / Antacid",
+    "common_identifiers": ["Zantac", "Rantac", "Ranitidine 150", "Aciloc 150"]
+  }
+]
