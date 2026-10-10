@@ -1,132 +1,200 @@
 {% extends "base.html" %}
-{% block title %}Found an Old Medicine? — MedSafe{% endblock %}
+{% block title %}Medicine Safety Check — MedSafe{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
     <div class="row justify-content-center">
         <div class="col-12 col-lg-8">
 
-            {# Breadcrumbs / Step Tracker #}
-            <div class="d-flex align-items-center justify-content-between mb-4">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-teal rounded-circle p-2 px-3 fw-bold text-white">2</span>
-                    <span class="fw-semibold text-teal">Check Old Medicine</span>
+            <!-- ─── Journey Progress ───────────────────────────────────── -->
+            <div class="journey-track mb-4">
+                <span class="journey-step done">
+                    <i class="bi bi-house-fill"></i> Home
+                </span>
+                <span class="journey-sep">›</span>
+                <span class="journey-step done">
+                    <i class="bi bi-file-earmark-medical-fill"></i> Prescription
+                </span>
+                <span class="journey-sep">›</span>
+                <span class="journey-step active">
+                    <i class="bi bi-capsule-pill"></i> Medicine Check
+                </span>
+                <span class="journey-sep">›</span>
+                <span class="journey-step text-muted">
+                    <i class="bi bi-shield-check"></i> Result
+                </span>
+            </div>
+
+            <!-- ─── Page Header ────────────────────────────────────────── -->
+            <div class="d-flex align-items-start gap-3 mb-4">
+                <div class="workflow-icon bg-teal-subtle text-teal flex-shrink-0"
+                     style="width:52px;height:52px;font-size:1.3rem;">
+                    <i class="bi bi-capsule"></i>
                 </div>
-                <div class="text-muted small">Step 2 of 2</div>
+                <div>
+                    <h1 class="h3 fw-bold text-dark mb-1">Check an Old Medicine</h1>
+                    <p class="text-muted small mb-0">
+                        Scan or enter the medicine you found at home. MedSafe will compare it with your current
+                        discharge plan and tell you the recommended next step.
+                    </p>
+                </div>
             </div>
 
-            <!-- Page Header -->
-            <div class="mb-4">
-                <h1 class="h3 fw-bold text-dark mb-2">
-                    <i class="bi bi-capsule text-teal me-1"></i> Found an Old Medicine?
-                </h1>
-                <p class="text-muted fs-6 mb-0">
-                    Tell us about the medicine you are considering before taking it. MedSafe checks your current discharge plan against the medicine you are considering reusing.
-                </p>
-            </div>
-
-            <!-- Warning Banner -->
-            <div class="alert alert-warning border-0 rounded-4 p-3 mb-4 d-flex align-items-start gap-3 shadow-xs">
-                <i class="bi bi-exclamation-triangle-fill text-warning fs-4 flex-shrink-0 mt-1"></i>
+            <!-- ─── Safety Notice ──────────────────────────────────────── -->
+            <div class="alert rounded-4 p-3 mb-4 d-flex align-items-start gap-3 border-0 shadow-xs"
+                 style="background:#fffbeb; border-left:4px solid #f59e0b !important;">
+                <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0 mt-1"></i>
                 <div class="small">
                     <strong>MedSafe does not replace a doctor or pharmacist.</strong><br>
-                    Do not take a medicine solely because MedSafe identifies it. If you are unsure, consult a doctor or pharmacist.
+                    This tool identifies medicines and checks for plan matches. It does not advise you to take any medicine.
+                    If in doubt, consult a healthcare professional.
                 </div>
             </div>
 
-            <!-- Flash messages -->
+            <!-- ─── Flash Messages ─────────────────────────────────────── -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3" role="alert">
+                    <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3 shadow-xs mb-4" role="alert">
                         <i class="bi bi-info-circle me-1"></i> {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 {% endfor %}
             {% endwith %}
 
-            <!-- ============================================================ -->
-            <!-- OPTION A: Scan Image / Document (OCR)                        -->
-            <!-- ============================================================ -->
+            <!-- ─── Current Prescription Status Reminder ───────────────── -->
+            {% if session.get('prescription_text') or session.get('current_prescription') %}
+            <div class="alert alert-light border rounded-3 p-3 mb-4 d-flex align-items-center justify-content-between gap-2 shadow-xs">
+                <div class="d-flex align-items-center gap-2 small">
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    <span><strong>Discharge prescription loaded.</strong> Safety Engine has your current medication list.</span>
+                </div>
+                <a href="{{ url_for('prescription.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 flex-shrink-0">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </a>
+            </div>
+            {% else %}
+            <div class="alert alert-warning border rounded-3 p-3 mb-4 d-flex align-items-center justify-content-between gap-2 shadow-xs">
+                <div class="d-flex align-items-center gap-2 small">
+                    <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                    <span>No discharge prescription loaded. Upload one first for a meaningful safety check.</span>
+                </div>
+                <a href="{{ url_for('prescription.index') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 flex-shrink-0">
+                    <i class="bi bi-upload me-1"></i>Upload
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 OPTION A: SCAN IMAGE / PDF
+            ═══════════════════════════════════════════════════════════ -->
             <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-                <div class="card-header bg-white border-bottom p-3">
-                    <h2 class="h6 fw-bold mb-0 text-dark">
-                        <i class="bi bi-camera text-teal me-1"></i> Option A: Scan Medicine Strip / Package / Document
-                    </h2>
+                <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-teal text-white px-2 py-1 rounded-2" style="font-size:0.65rem;">OPTION A</span>
+                        <h2 class="h6 fw-bold mb-0 text-dark">
+                            <i class="bi bi-camera text-teal me-1"></i>Scan Medicine Packaging / PDF
+                        </h2>
+                    </div>
+                    <span class="badge bg-light text-muted border small">Auto-fills form below</span>
                 </div>
                 <div class="card-body p-4">
-                    <p class="small text-muted mb-3">
-                        Upload a photo of the medicine packaging or a PDF leaflet/document. MedSafe will extract text to pre-fill details below.
+                    <p class="small text-muted mb-4">
+                        Take a photo of the medicine strip, blister pack, or bottle label — or upload a PDF leaflet.
+                        MedSafe will try to extract the medicine name and strength automatically.
                     </p>
 
-                    <form action="{{ url_for('medicine.upload_scan') }}" method="POST" enctype="multipart/form-data" id="med-scan-form">
-                        <div class="drop-zone border border-2 border-dashed rounded-4 p-4 text-center mb-3 bg-light position-relative" id="med-drop-zone">
-                            <input type="file" class="drop-zone-input" id="medicine_image" name="medicine_image" accept=".png,.jpg,.jpeg,.webp,.pdf">
+                    <form action="{{ url_for('medicine.upload_scan') }}" method="POST"
+                          enctype="multipart/form-data" id="med-scan-form">
+
+                        <div class="drop-zone border border-2 border-dashed rounded-4 p-4 text-center mb-3 position-relative"
+                             id="med-drop-zone">
+                            <input type="file" class="drop-zone-input" id="medicine_image"
+                                   name="medicine_image" accept=".png,.jpg,.jpeg,.webp,.pdf">
                             <div class="drop-zone-prompt">
-                                <i class="bi bi-camera text-teal display-6 mb-2 d-block"></i>
-                                <div class="fw-semibold text-dark mb-1">Click to select or drag medicine photo / PDF here</div>
-                                <div class="small text-muted">Supports <strong>PDF documents</strong> and <strong>PNG, JPG, WebP</strong> photos</div>
+                                <i class="bi bi-camera text-teal display-5 mb-3 d-block"></i>
+                                <div class="fw-semibold text-dark mb-1">
+                                    Click to select or drag medicine photo / PDF here
+                                </div>
+                                <div class="small text-muted">
+                                    Supports <strong>PDF documents</strong>, <strong>JPG, PNG, WebP</strong> photos
+                                </div>
                             </div>
-                            <div id="image-preview" class="d-none mt-2">
+                            <div id="image-preview" class="d-none mt-3">
                                 <div id="med-pdf-badge" class="d-none py-3">
                                     <i class="bi bi-file-earmark-pdf text-danger display-4 mb-2 d-block"></i>
                                     <span class="badge bg-danger fs-6 px-3 py-2">PDF Document Ready</span>
                                 </div>
-                                <img id="preview-img" src="" alt="Medicine preview" class="img-thumbnail rounded-3 shadow-xs d-none" style="max-height: 180px;">
-                                <div class="mt-2">
-                                    <span id="med-filename" class="badge bg-secondary me-2"></span>
-                                    <button type="button" id="clear-image" class="btn btn-sm btn-outline-danger">
+                                <img id="preview-img" src="" alt="Medicine preview"
+                                     class="img-thumbnail rounded-3 shadow-xs d-none" style="max-height:180px;">
+                                <div class="mt-2 d-flex align-items-center justify-content-center gap-2">
+                                    <span id="med-filename" class="badge bg-secondary"></span>
+                                    <button type="button" id="clear-image" class="btn btn-sm btn-outline-danger rounded-pill">
                                         <i class="bi bi-x-circle me-1"></i>Remove
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Processing Indicator -->
+                        <!-- OCR status indicator -->
                         <div id="med-ocr-status" class="alert alert-info d-none align-items-center gap-2 rounded-3 mb-3">
                             <div class="spinner-border spinner-border-sm text-teal" role="status"></div>
-                            <span class="small fw-medium">Running OCR text extraction on medicine photo...</span>
+                            <span class="small fw-medium">Analysing medicine image with OCR…</span>
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="small text-muted">Optional: You can also type details directly below</span>
-                            <button type="submit" class="btn btn-outline-teal rounded-3 px-4 fw-semibold" id="med-scan-btn">
-                                <i class="bi bi-eye me-1"></i>Scan Image
+                            <span class="small text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Scan is optional — you can enter details manually below
+                            </span>
+                            <button type="submit" class="btn btn-teal rounded-3 px-4 fw-semibold" id="med-scan-btn">
+                                <i class="bi bi-eye me-1"></i>Scan &amp; Extract
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- OCR raw text notice (if scanned) -->
+            <!-- ─── OCR Raw Text (if returned from scan) ───────────────── -->
             {% if ocr and ocr.raw_text %}
-            <div class="card border-0 shadow-sm rounded-4 mb-4 border-start border-4 border-info">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h2 class="h6 fw-bold text-dark mb-0">
-                            <i class="bi bi-file-text text-info me-1"></i> OCR Raw Extracted Text
-                        </h2>
-                        <span class="badge bg-{{ 'danger' if ocr.is_low_confidence else 'success' }}">
-                            Confidence: {{ ocr.confidence }}%
-                        </span>
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-file-text text-info"></i>
+                        <h2 class="h6 fw-bold text-dark mb-0">OCR Extracted Text</h2>
                     </div>
-                    <p class="small text-muted mb-2">
-                        OCR text is untrusted input. The editable fields below have been pre-filled for you to verify.
-                    </p>
-                    <pre class="bg-light rounded-3 p-3 mb-0 small text-dark font-monospace" style="white-space: pre-wrap;">{{ ocr.raw_text }}</pre>
+                    <span class="badge bg-{{ 'danger' if ocr.is_low_confidence else 'success' }} px-2 py-1">
+                        {{ '%.0f'|format(ocr.confidence) }}% Confidence
+                    </span>
+                </div>
+                <div class="card-body p-3">
+                    {% if ocr.is_low_confidence %}
+                    <div class="alert alert-warning small rounded-3 py-2 mb-3">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Low OCR confidence. Please verify the pre-filled fields below carefully.
+                    </div>
+                    {% endif %}
+                    <pre class="ocr-raw-block p-3 mb-0 small font-monospace"
+                         style="white-space:pre-wrap;">{{ ocr.raw_text }}</pre>
                 </div>
             </div>
             {% endif %}
 
-            <!-- ============================================================ -->
-            <!-- OPTION B: Review or Enter Medicine Details                   -->
-            <!-- ============================================================ -->
-            <form action="{{ url_for('medicine.check_submit') }}" method="POST" class="card border-0 shadow-sm rounded-4 mb-4" id="medicine-check-form">
-                <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
-                    <h2 class="h6 fw-bold mb-0 text-dark">
-                        <i class="bi bi-pencil-square text-primary me-1"></i>
-                        {% if ocr %}Review Extracted Medicine Details{% else %}Option B: Enter Medicine Details Manually{% endif %}
-                    </h2>
-                    <span class="badge bg-primary-subtle text-primary">Required</span>
+            <!-- ═══════════════════════════════════════════════════════════
+                 OPTION B: ENTER MEDICINE DETAILS
+            ═══════════════════════════════════════════════════════════ -->
+            <form action="{{ url_for('medicine.check_submit') }}" method="POST"
+                  class="card border-0 shadow-sm rounded-4 mb-4" id="medicine-check-form">
+                <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary text-white px-2 py-1 rounded-2" style="font-size:0.65rem;">
+                            {% if ocr %}AUTO-FILLED{% else %}OPTION B{% endif %}
+                        </span>
+                        <h2 class="h6 fw-bold mb-0 text-dark">
+                            <i class="bi bi-pencil-square text-primary me-1"></i>
+                            {% if ocr %}Review Extracted Medicine Details{% else %}Enter Medicine Details Manually{% endif %}
+                        </h2>
+                    </div>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small">Required</span>
                 </div>
                 <div class="card-body p-4">
 
@@ -136,87 +204,106 @@
                     {% endif %}
 
                     <!-- Medicine Name -->
-                    <div class="mb-3">
-                        <label for="medicine_name" class="form-label fw-semibold text-dark small text-uppercase">
-                            Medicine Name <span class="text-danger">*</span>
+                    <div class="mb-4">
+                        <label for="medicine_name"
+                               class="form-label fw-semibold text-dark small text-uppercase letter-spaced mb-2">
+                            <i class="bi bi-capsule text-teal me-1"></i>Medicine Name
+                            <span class="text-danger">*</span>
                         </label>
-                        <input type="text" class="form-control rounded-3 p-3" id="medicine_name" name="medicine_name"
+                        <input type="text" class="form-control form-control-lg rounded-3"
+                               id="medicine_name" name="medicine_name"
                                value="{{ ocr.medicine_name if ocr else '' }}"
                                placeholder="e.g. Amoxicillin, Paracetamol, Metformin, Augmentin" required>
-                        <div class="form-text small">Enter the brand name or generic name on the packaging.</div>
+                        <div class="form-text small">
+                            Enter the name as shown on the packaging. Brand names and generic names both work.
+                        </div>
                     </div>
 
                     <!-- Strength -->
                     <div class="mb-4">
-                        <label for="strength" class="form-label fw-semibold text-dark small text-uppercase">
-                            Strength <span class="text-muted fw-normal font-sans text-lowercase">(optional if unknown)</span>
+                        <label for="strength"
+                               class="form-label fw-semibold text-dark small text-uppercase letter-spaced mb-2">
+                            <i class="bi bi-droplet-half text-teal me-1"></i>Strength
+                            <span class="text-muted fw-normal text-lowercase">(optional)</span>
                         </label>
-                        <input type="text" class="form-control rounded-3 p-3" id="strength" name="strength"
+                        <input type="text" class="form-control rounded-3"
+                               id="strength" name="strength"
                                value="{{ ocr.strength if ocr else '' }}"
-                               placeholder="e.g. 500mg, 250mg, 40mg, 625mg">
+                               placeholder="e.g. 500mg, 250mg/5ml, 40mg, 625mg">
+                        <div class="form-text small">
+                            Enter the dosage strength shown on the packaging. Leave blank if not visible.
+                        </div>
                     </div>
 
-                    <!-- Reason for considering reuse -->
+                    <!-- Separator -->
+                    <hr class="my-4">
+
+                    <!-- Reason for Reuse -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold text-dark small text-uppercase mb-2">
-                            Why are you considering taking this medicine? <span class="text-danger">*</span>
+                        <label class="form-label fw-semibold text-dark small text-uppercase letter-spaced mb-3">
+                            <i class="bi bi-chat-left-quote text-primary me-1"></i>Why are you considering taking this medicine?
+                            <span class="text-danger">*</span>
                         </label>
-                        
                         <div class="d-flex flex-column gap-2">
-                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3 cursor-pointer">
-                                <input class="form-check-input mt-0" type="radio" name="reason" id="reason1"
-                                       value="It was prescribed to me before" checked>
+
+                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3">
+                                <input class="form-check-input mt-0 flex-shrink-0" type="radio"
+                                       name="reason" value="It was prescribed to me before" checked>
                                 <div>
-                                    <span class="fw-medium text-dark d-block">It was prescribed to me before</span>
+                                    <span class="fw-medium text-dark d-block reason-title">It was prescribed to me before</span>
                                     <span class="small text-muted">Leftover medication from a previous prescription</span>
                                 </div>
                             </label>
 
-                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3 cursor-pointer">
-                                <input class="form-check-input mt-0" type="radio" name="reason" id="reason2"
-                                       value="I have similar symptoms again">
+                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3">
+                                <input class="form-check-input mt-0 flex-shrink-0" type="radio"
+                                       name="reason" value="I have similar symptoms again">
                                 <div>
-                                    <span class="fw-medium text-dark d-block">I have similar symptoms again</span>
-                                    <span class="small text-muted">Experiencing symptoms that feel similar to a past illness</span>
+                                    <span class="fw-medium text-dark d-block reason-title">I have similar symptoms again</span>
+                                    <span class="small text-muted">Experiencing symptoms similar to a past illness</span>
                                 </div>
                             </label>
 
-                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3 cursor-pointer">
-                                <input class="form-check-input mt-0" type="radio" name="reason" id="reason3"
-                                       value="Someone recommended it">
+                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3">
+                                <input class="form-check-input mt-0 flex-shrink-0" type="radio"
+                                       name="reason" value="Someone recommended it">
                                 <div>
-                                    <span class="fw-medium text-dark d-block">Someone recommended it</span>
-                                    <span class="small text-muted">A family member or acquaintance suggested taking it</span>
+                                    <span class="fw-medium text-dark d-block reason-title">Someone recommended it</span>
+                                    <span class="small text-muted">A family member or acquaintance suggested it</span>
                                 </div>
                             </label>
 
-                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3 cursor-pointer">
-                                <input class="form-check-input mt-0" type="radio" name="reason" id="reason4"
-                                       value="I don't remember why I have it">
+                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3">
+                                <input class="form-check-input mt-0 flex-shrink-0" type="radio"
+                                       name="reason" value="I don't remember why I have it">
                                 <div>
-                                    <span class="fw-medium text-dark d-block">I don't remember why I have it</span>
+                                    <span class="fw-medium text-dark d-block reason-title">I don't remember why I have it</span>
                                     <span class="small text-muted">Found in the medicine cabinet with unclear history</span>
                                 </div>
                             </label>
 
-                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3 cursor-pointer">
-                                <input class="form-check-input mt-0" type="radio" name="reason" id="reason5"
-                                       value="Other">
+                            <label class="reason-card border rounded-3 p-3 d-flex align-items-center gap-3">
+                                <input class="form-check-input mt-0 flex-shrink-0" type="radio"
+                                       name="reason" value="Other">
                                 <div>
-                                    <span class="fw-medium text-dark d-block">Other</span>
-                                    <span class="small text-muted">Other personal circumstance</span>
+                                    <span class="fw-medium text-dark d-block reason-title">Other reason</span>
+                                    <span class="small text-muted">Another personal circumstance</span>
                                 </div>
                             </label>
+
                         </div>
                     </div>
 
-                    <!-- Submit Button -->
+                    <!-- Submit -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pt-2">
-                        <a href="{{ url_for('prescription.index') }}" class="btn btn-outline-secondary rounded-3 px-3">
+                        <a href="{{ url_for('prescription.index') }}"
+                           class="btn btn-outline-secondary rounded-3 px-3">
                             <i class="bi bi-arrow-left me-1"></i>Review Prescription
                         </a>
-                        <button type="submit" class="btn btn-primary btn-lg rounded-3 px-5 py-3 fw-semibold shadow-sm" id="check-medicine-btn">
-                            <i class="bi bi-shield-check me-2"></i>Check Medicine
+                        <button type="submit"
+                                class="btn btn-primary btn-lg rounded-3 px-5 py-3 fw-semibold shadow-sm"
+                                id="check-medicine-btn">
+                            <i class="bi bi-shield-check me-2"></i>Run Safety Check
                         </button>
                     </div>
 
@@ -227,19 +314,19 @@
     </div>
 </div>
 
-<!-- ================================================================= -->
-<!-- PROCESSING MODAL / OVERLAY (Step 5 Requirement)                   -->
-<!-- ================================================================= -->
-<div class="modal fade" id="processingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+<!-- ═══════════════════════════════════════════════════════════
+     PROCESSING MODAL
+═══════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="processingModal" data-bs-backdrop="static"
+     data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4 p-4 text-center">
             <div class="mb-4">
-                <div class="spinner-grow text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-                <h2 class="h5 fw-bold text-dark mb-1">MedSafe Safety Check</h2>
-                <p class="small text-muted mb-0">Running deterministic safety engine analysis...</p>
+                <div class="spinner-grow text-primary mb-3" style="width:3rem;height:3rem;" role="status"></div>
+                <h2 class="h5 fw-bold text-dark mb-1">Running Safety Check</h2>
+                <p class="small text-muted mb-0">Deterministic Safety Engine is analysing your medicine…</p>
             </div>
 
-            <!-- Processing Steps Progress -->
             <div class="processing-steps text-start bg-light rounded-3 p-3 mb-3 small">
                 <div class="step-item d-flex align-items-center gap-2 mb-2 active" id="step-reading">
                     <i class="bi bi-check-circle-fill text-primary"></i>
@@ -259,12 +346,12 @@
                 </div>
                 <div class="step-item d-flex align-items-center gap-2" id="step-preparing">
                     <i class="bi bi-circle text-muted"></i>
-                    <span>Preparing patient verification result</span>
+                    <span>Preparing patient-readable result</span>
                 </div>
             </div>
 
             <div class="small text-muted fst-italic">
-                Decision support checkpoint — verifying data...
+                <i class="bi bi-cpu me-1"></i>Deterministic engine — no AI making safety decisions
             </div>
         </div>
     </div>

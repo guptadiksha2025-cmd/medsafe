@@ -15,7 +15,7 @@ import json
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 # ---------------------------------------------------------------------------
 # Dataset loading
@@ -106,6 +106,70 @@ def find_medicine(name: str) -> list:
     if exact_alias:
         return exact_alias
     return partial
+
+
+def find_medicine_in_text(raw_text: str) -> Optional[Dict[str, Any]]:
+    """
+    Scan raw OCR or unstructured text (e.g. from medicine packaging or prescription)
+    and match any recognized brand name, alias, or active ingredient in the demo dataset.
+
+    Returns the best matching record and extracted name/strength if found, else None.
+    """
+    if not raw_text or not raw_text.strip():
+        return None
+
+    dataset = _load_dataset()
+    normalized_text = normalize_medicine_name(raw_text)
+    text_tokens = set(normalized_text.split())
+
+    best_match = None
+    best_candidate_name = ""
+
+    # Priority 1: Check multi-word brand names / aliases and single-word names
+    for record in dataset:
+        candidates = [record['medicine_name']] + record.get('common_identifiers', []) + [record.get('active_ingredient', '')]
+        for candidate in candidates:
+            if not candidate:
+                continue
+            norm_cand = normalize_medicine_name(candidate)
+            # Check full phrase match in text
+            pattern = r'\b' + re.escape(norm_cand) + r'\b'
+            if re.search(pattern, normalized_text):
+                best_match = record
+                best_candidate_name = record['medicine_name']
+                break
+        if best_match:
+            break
+
+    # If no full phrase match, check single tokens
+    if not best_match:
+        for record in dataset:
+            names = [record['medicine_name']] + record.get('common_identifiers', [])
+            for n in names:
+                n_norm = normalize_medicine_name(n).split()
+                if len(n_norm) == 1 and n_norm[0] in text_tokens and len(n_norm[0]) >= 4:
+                    best_match = record
+                    best_candidate_name = record['medicine_name']
+                    break
+            if best_match:
+                break
+
+    if best_match:
+        # Also extract strength from the raw text
+        strength_match = re.search(
+            r'\b(\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|%|iu|units?))\b', raw_text, re.IGNORECASE
+        )
+        found_strength = strength_match.group(1).strip() if strength_match else best_match.get('strength', '')
+
+        return {
+            'record': best_match,
+            'medicine_name': best_candidate_name,
+            'strength': found_strength,
+            'active_ingredient': best_match.get('active_ingredient', ''),
+            'category': best_match.get('category', ''),
+        }
+
+    return None
 
 
 def get_active_ingredient(name: str) -> Optional[str]:

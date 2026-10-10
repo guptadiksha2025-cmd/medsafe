@@ -1,11 +1,11 @@
 """
 MedSafe OCR & Document Extraction Service
 =========================================
-Extracts text from medicine packaging images, photos, and PDF documents
+Extracts text from medicine packaging images, photos, blister strips, and PDF documents
 (such as electronic or scanned hospital discharge prescriptions).
 
 Supports:
-- Image formats: PNG, JPG, JPEG, WEBP (via Pillow + Tesseract OCR)
+- Image formats: PNG, JPG, JPEG, WEBP (via Pillow + Multi-pass Tesseract OCR)
 - PDF documents: Digital PDF text extraction & scanned PDF page OCR (via PyMuPDF / pypdf)
 
 OCR output is treated as UNTRUSTED input — the user must always review
@@ -15,23 +15,42 @@ and correct the extracted information before proceeding.
 import os
 import re
 import io
+import shutil
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List, Tuple
 
-from PIL import Image, ImageFilter, ImageEnhance
+from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Tesseract setup — auto-detect common Windows install path
+# Dynamic Tesseract setup — checks all standard Windows installation paths
 # ---------------------------------------------------------------------------
 try:
     import pytesseract
 
-    _win_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    if os.path.isfile(_win_path):
-        pytesseract.pytesseract.tesseract_cmd = _win_path
+    def _find_tesseract_binary() -> Optional[str]:
+        # Check PATH first
+        path_cmd = shutil.which("tesseract")
+        if path_cmd and os.path.isfile(path_cmd):
+            return path_cmd
+
+        # Check standard Windows directories
+        candidates = [
+            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+            r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+            os.path.expanduser(r"~\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"),
+            os.path.expanduser(r"~\AppData\Local\Tesseract-OCR\tesseract.exe"),
+        ]
+        for p in candidates:
+            if os.path.isfile(p):
+                return p
+        return None
+
+    tess_path = _find_tesseract_binary()
+    if tess_path:
+        pytesseract.pytesseract.tesseract_cmd = tess_path
 
     TESSERACT_AVAILABLE = True
 except ImportError:
@@ -83,15 +102,84 @@ class OCRResult:
 
 
 # ---------------------------------------------------------------------------
-# Image pre-processing — improve OCR accuracy on photos / scans
+# Multi-Pass Image Preprocessing for Packaging & Blister Strips
 # ---------------------------------------------------------------------------
 
-def _preprocess_image(image: Image.Image) -> Image.Image:
-    """Convert to greyscale, sharpen, and boost contrast for better OCR."""
-    img = image.convert("L")  # greyscale
+def _preprocess_pass1(image: Image.Image) -> Image.Image:
+    """Pass 1: Grayscale + Sharpen + Moderate Contrast Boost (for high-contrast packaging)."""
+    img = image.convert("L")
     img = img.filter(ImageFilter.SHARPEN)
-    img = ImageEnhance.Contrast(img).enhance(1.8)
+    img = ImageEnhance.Contrast(img).enhance(1.6)
     return img
+
+
+def _preprocess_pass2(image: Image.Image) -> Image.Image:
+    """Pass 2: Auto-contrast + adaptive thresholding (for foil blister strips & low-light photos)."""
+    img = image.convert("L")
+    img = ImageOps.autocontrast(img, cutoff=2)
+    img = ImageEnhance.Sharpness(img).enhance(2.0)
+    # Binarize with threshold
+    threshold = 140
+    img = img.point(lambda p: 255 if p > threshold else 0)
+    return img
+
+
+# ---------------------------------------------------------------------------
+# Core OCR Pipeline with Multi-Pass Execution
+# ---------------------------------------------------------------------------
+
+def _run_tesseract_ocr(image: Image.Image) -> Tuple[str, float]:
+    """
+    Run multi-pass Tesseract OCR on a PIL image.
+    Uses PSM 3 (auto page segmentation) and PSM 11 (sparse text).
+    Returns (raw_text, confidence).
+    """
+    if not TESSERACT_AVAILABLE:
+        return "", 0.0
+
+    best_text = ""
+    best_conf = 0.0
+
+    # Ensure tesseract_cmd is set if binary is available
+    if not shutil.which("tesseract"):
+        found_bin = _find_tesseract_binary()
+        if found_bin:
+            pytesseract.pytesseract.tesseract_cmd = found_bin
+
+    # Try Pass 1: Standard contrast enhancement with PSM 3 (Auto)
+    try:
+        p1_img = _preprocess_pass1(image)
+        p1_data = pytesseract.image_to_data(p1_img, output_type=pytesseract.Output.DICT, config="--psm 3")
+        p1_text = pytesseract.image_to_string(p1_img, config="--psm 3").strip()
+        confs = [int(c) for c in p1_data.get("conf", []) if int(c) > -1]
+        p1_conf = sum(confs) / len(confs) if confs else 0.0
+
+        if len(p1_text) > len(best_text):
+            best_text = p1_text
+            best_conf = p1_conf
+    except Exception as e:
+        logger.debug("Tesseract Pass 1 failed: %s", e)
+
+    # Try Pass 2: Sparse layout / high-contrast threshold with PSM 11
+    try:
+        p2_img = _preprocess_pass2(image)
+        p2_data = pytesseract.image_to_data(p2_img, output_type=pytesseract.Output.DICT, config="--psm 11")
+        p2_text = pytesseract.image_to_string(p2_img, config="--psm 11").strip()
+        confs2 = [int(c) for c in p2_data.get("conf", []) if int(c) > -1]
+        p2_conf = sum(confs2) / len(confs2) if confs2 else 0.0
+
+        # If Pass 2 produced significantly more text or Pass 1 had low confidence
+        if (len(p2_text) > len(best_text) and p2_conf >= 30) or not best_text:
+            best_text = p2_text
+            best_conf = max(best_conf, p2_conf)
+        elif p2_text and p1_text and len(p2_text) > 10:
+            # Combine any unique text detected
+            combined_lines = list(dict.fromkeys(p1_text.splitlines() + p2_text.splitlines()))
+            best_text = "\n".join(combined_lines).strip()
+    except Exception as e:
+        logger.debug("Tesseract Pass 2 failed: %s", e)
+
+    return best_text, best_conf
 
 
 # ---------------------------------------------------------------------------
@@ -142,12 +230,12 @@ def _extract_from_pdf(pdf_path: str) -> OCRResult:
         result.raw_text = extracted_text
         result.confidence = 95.0
         result.is_low_confidence = False
-        result.medicine_name = _guess_medicine_name(extracted_text)
+        result.medicine_name = _identify_or_guess_medicine_name(extracted_text)
         result.strength = _extract_strength(extracted_text)
         result.dosage_info = _extract_dosage(extracted_text)
         return result
 
-    # Strategy 3: Scanned PDF — render pages to image and run Tesseract OCR
+    # Strategy 3: Scanned PDF — render pages to image and run multi-pass OCR
     if PYMUPDF_AVAILABLE and TESSERACT_AVAILABLE:
         try:
             doc = pymupdf.open(pdf_path)
@@ -155,37 +243,23 @@ def _extract_from_pdf(pdf_path: str) -> OCRResult:
             page_confidences = []
 
             for page_idx, page in enumerate(doc):
-                # Render page at 200 DPI for optimal OCR clarity
                 pix = page.get_pixmap(dpi=200)
                 img = Image.open(io.BytesIO(pix.tobytes("png")))
-                processed_img = _preprocess_image(img)
+                p_text, p_conf = _run_tesseract_ocr(img)
 
-                try:
-                    ocr_data = pytesseract.image_to_data(
-                        processed_img, output_type=pytesseract.Output.DICT, config="--psm 6"
-                    )
-                    confs = [int(c) for c in ocr_data.get("conf", []) if int(c) > -1]
-                    if confs:
-                        page_confidences.extend(confs)
-
-                    page_text = pytesseract.image_to_string(processed_img, config="--psm 6").strip()
-                    if page_text:
-                        ocr_pages_text.append(page_text)
-                except Exception as ocr_err:
-                    logger.warning("OCR failed on PDF page %d: %s", page_idx, ocr_err)
+                if p_text:
+                    ocr_pages_text.append(p_text)
+                if p_conf > 0:
+                    page_confidences.append(p_conf)
 
             doc.close()
 
             combined_ocr_text = "\n\n".join(ocr_pages_text).strip()
             if combined_ocr_text:
                 result.raw_text = combined_ocr_text
-                if page_confidences:
-                    result.confidence = sum(page_confidences) / len(page_confidences)
-                else:
-                    result.confidence = 60.0
-
+                result.confidence = sum(page_confidences) / len(page_confidences) if page_confidences else 60.0
                 result.is_low_confidence = result.confidence < CONFIDENCE_THRESHOLD
-                result.medicine_name = _guess_medicine_name(combined_ocr_text)
+                result.medicine_name = _identify_or_guess_medicine_name(combined_ocr_text)
                 result.strength = _extract_strength(combined_ocr_text)
                 result.dosage_info = _extract_dosage(combined_ocr_text)
                 return result
@@ -193,11 +267,14 @@ def _extract_from_pdf(pdf_path: str) -> OCRResult:
         except Exception as render_err:
             logger.warning("Scanned PDF page rendering failed: %s", render_err)
 
-    # Fallback if no text could be extracted from PDF
+    # Fallback if text extracted but low confidence
     if extracted_text:
         result.raw_text = extracted_text
         result.confidence = 50.0
         result.is_low_confidence = True
+        result.medicine_name = _identify_or_guess_medicine_name(extracted_text)
+        result.strength = _extract_strength(extracted_text)
+        result.dosage_info = _extract_dosage(extracted_text)
     else:
         result.warnings.append(
             "Could not extract readable text from this PDF. Please verify and enter the medicine details manually."
@@ -219,11 +296,9 @@ def extract_text_from_file(file_path: str) -> OCRResult:
         res.warnings.append("Document file not found.")
         return res
 
-    # Check for PDF extension or header
     if file_path.lower().endswith('.pdf'):
         return _extract_from_pdf(file_path)
 
-    # Fallback to image OCR
     return extract_text_from_image(file_path)
 
 
@@ -247,44 +322,27 @@ def extract_text_from_image(image_path: str) -> OCRResult:
         result.warnings.append("Could not open the image. The file may be corrupted or unreadable.")
         return result
 
-    if not TESSERACT_AVAILABLE:
-        result.warnings.append("Tesseract OCR engine is not installed on this system.")
-        return result
+    # Run multi-pass Tesseract extraction
+    raw_text, confidence = _run_tesseract_ocr(image)
 
-    processed = _preprocess_image(image)
-
-    # --- Extract text with confidence data ---
-    try:
-        ocr_data = pytesseract.image_to_data(
-            processed, output_type=pytesseract.Output.DICT, config="--psm 6"
-        )
-    except Exception as exc:
-        logger.warning("Tesseract failed on %s: %s", image_path, exc)
-        result.warnings.append("OCR processing failed. The image may be unreadable.")
-        return result
-
-    # Compute average confidence (ignoring -1 entries which mean "no text")
-    confidences = [int(c) for c in ocr_data.get("conf", []) if int(c) > -1]
-    if confidences:
-        result.confidence = sum(confidences) / len(confidences)
-    else:
-        result.confidence = 0.0
-
-    result.raw_text = pytesseract.image_to_string(processed, config="--psm 6").strip()
+    result.raw_text = raw_text
+    result.confidence = confidence
 
     if not result.raw_text:
-        result.warnings.append("No readable text could be extracted from the image.")
+        result.warnings.append(
+            "Could not extract clear text from the image. Please enter the medicine name manually below."
+        )
         return result
 
     result.is_low_confidence = result.confidence < CONFIDENCE_THRESHOLD
 
     if result.is_low_confidence:
         result.warnings.append(
-            "Medicine information could not be confidently identified. Please verify the details manually."
+            "Medicine information could not be confidently identified from the image. Please verify details manually."
         )
 
-    # --- Parse structured fields from raw text ---
-    result.medicine_name = _guess_medicine_name(result.raw_text)
+    # --- Match identified medicine and parse fields ---
+    result.medicine_name = _identify_or_guess_medicine_name(result.raw_text)
     result.strength = _extract_strength(result.raw_text)
     result.dosage_info = _extract_dosage(result.raw_text)
 
@@ -312,35 +370,78 @@ def extract_prescription_text(file_path: str) -> OCRResult:
 
 
 # ---------------------------------------------------------------------------
-# Heuristic helpers — best-effort, never authoritative
+# Heuristic & Intelligent Recognition Helpers
 # ---------------------------------------------------------------------------
+
+def _identify_or_guess_medicine_name(text: str) -> str:
+    """
+    First attempts intelligent lookup against the demo medicine database.
+    If no known medicine is matched, applies improved packaging heuristics.
+    """
+    if not text or not text.strip():
+        return ""
+
+    # Strategy 1: Match against known medicines & aliases in database
+    try:
+        from services.medicine_service import find_medicine_in_text
+        found = find_medicine_in_text(text)
+        if found and found.get('medicine_name'):
+            return found['medicine_name']
+    except Exception as e:
+        logger.debug("find_medicine_in_text failed: %s", e)
+
+    # Strategy 2: Clean heuristics for unlisted packaging
+    return _guess_medicine_name(text)
+
 
 def _guess_medicine_name(text: str) -> str:
     """
-    Heuristic: take the first line that looks like a medicine name.
-    Filters out very short tokens, pure numbers, and common label boilerplate.
+    Heuristic: isolate candidate medicine name from packaging text by
+    stripping pharmaceutical boilerplate, licensing, and manufacturer noise.
     """
-    boilerplate = {
+    boilerplate_words = {
         'mfg', 'mfd', 'exp', 'batch', 'lot', 'store', 'keep', 'warning',
         'caution', 'for', 'use', 'only', 'date', 'manufactured', 'marketed',
         'hospital', 'discharge', 'summary', 'rx', 'prescription', 'patient',
+        'tablets', 'capsules', 'strip', 'pack', 'limited', 'ltd', 'pvt',
+        'schedule', 'drug', 'dosage', 'directed', 'physician', 'reach',
+        'children', 'lic', 'reg', 'composition', 'each', 'contains', 'ip',
+        'bp', 'usp', 'price', 'mrp', 'inclusive', 'taxes',
     }
+
+    candidates = []
     for line in text.splitlines():
-        line = line.strip().lstrip('0123456789.-) ')
-        if not line or len(line) < 3:
+        cleaned_line = line.strip().lstrip('0123456789.-) ')
+        if not cleaned_line or len(cleaned_line) < 3:
             continue
-        first_word = line.split()[0].lower().rstrip(':.,')
-        if first_word in boilerplate:
+
+        # Skip lines that are purely numeric, date-like, or dosage
+        if re.fullmatch(r'[\d/.\-\s%:mg/]+', cleaned_line, re.IGNORECASE):
             continue
-        # Skip lines that are purely numeric / date-like
-        if re.fullmatch(r'[\d/.\-\s]+', line):
+
+        words = [w.lower().rstrip(':.,;()') for w in cleaned_line.split()]
+        # Check if line is purely boilerplate words
+        boilerplate_count = sum(1 for w in words if w in boilerplate_words)
+        if boilerplate_count >= len(words) * 0.6:
             continue
-        return line
+
+        # Clean out trailing pharmaceutical terms like "Tablets IP" or "500mg"
+        cleaned_line = re.sub(r'\b(Tablets?|Capsules?|IP|BP|USP|Oral|Syrup|Injection)\b', '', cleaned_line, flags=re.IGNORECASE).strip()
+        cleaned_line = re.sub(r'\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|%)\b', '', cleaned_line, flags=re.IGNORECASE).strip()
+
+        if len(cleaned_line) >= 3:
+            candidates.append(cleaned_line)
+
+    if candidates:
+        # Return the shortest non-empty candidate (usually the brand name)
+        candidates.sort(key=lambda c: (len(c.split()) > 4, len(c)))
+        return candidates[0]
+
     return ""
 
 
 def _extract_strength(text: str) -> str:
-    """Return the first strength pattern found (e.g. '500mg')."""
+    """Return the first strength pattern found (e.g. '500mg' or '625 mg')."""
     match = _STRENGTH_RE.search(text)
     return match.group(1).strip() if match else ""
 

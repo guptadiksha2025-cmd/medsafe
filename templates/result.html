@@ -9,19 +9,22 @@
 {% set status  = safety.get('status', 'GRAY') %}
 {% set conf    = safety.get('confidence', 0) %}
 
-{# ── Confidence band: translate 0-1 float into High / Medium / Low ── #}
+{# ── Confidence band ── #}
 {% if conf >= 0.80 %}
   {% set conf_label = 'High' %}
   {% set conf_class = 'success' %}
   {% set conf_icon  = 'bi-shield-fill-check' %}
+  {% set conf_pct   = (conf * 100)|round(0)|int %}
 {% elif conf >= 0.50 %}
   {% set conf_label = 'Medium' %}
   {% set conf_class = 'warning' %}
   {% set conf_icon  = 'bi-shield-fill-exclamation' %}
+  {% set conf_pct   = (conf * 100)|round(0)|int %}
 {% else %}
   {% set conf_label = 'Low' %}
   {% set conf_class = 'danger' %}
   {% set conf_icon  = 'bi-shield-fill-x' %}
+  {% set conf_pct   = (conf * 100)|round(0)|int %}
 {% endif %}
 
 {# ── Status theme ── #}
@@ -29,394 +32,467 @@
   {% set status_class = 'success' %}
   {% set status_icon  = 'bi-check-circle-fill' %}
   {% set status_label = 'CURRENT PLAN MATCH' %}
-  {% set status_desc  = 'The medicine matches an item in your current medication plan.' %}
+  {% set status_desc  = 'This medicine matches an item in your current discharge medication plan.' %}
   {% set result_bg    = 'result-green' %}
+  {% set status_color = '#10b981' %}
 {% elif status == 'RED' %}
   {% set status_class = 'danger' %}
   {% set status_icon  = 'bi-x-circle-fill' %}
   {% set status_label = 'PROFESSIONAL REVIEW REQUIRED' %}
-  {% set status_desc  = 'The system detected a defined concern that requires professional review.' %}
+  {% set status_desc  = 'A defined concern was detected. Do not take this medicine without professional advice.' %}
   {% set result_bg    = 'result-red' %}
+  {% set status_color = '#ef4444' %}
 {% elif status == 'YELLOW' %}
   {% set status_class = 'warning' %}
   {% set status_icon  = 'bi-exclamation-circle-fill' %}
   {% set status_label = 'VERIFY BEFORE TAKING' %}
-  {% set status_desc  = 'The medicine is identified, but its relationship to your current treatment is unclear or it is not part of the current plan.' %}
+  {% set status_desc  = 'This medicine was identified, but it is not part of your current discharge plan. Verification is required.' %}
   {% set result_bg    = 'result-yellow' %}
+  {% set status_color = '#f59e0b' %}
 {% else %}
   {% set status_class = 'secondary' %}
   {% set status_icon  = 'bi-question-circle-fill' %}
   {% set status_label = 'UNABLE TO VERIFY' %}
-  {% set status_desc  = 'The available information is insufficient to confidently identify or evaluate this medicine.' %}
+  {% set status_desc  = 'The available information is not sufficient to confidently identify or evaluate this medicine.' %}
   {% set result_bg    = 'result-gray' %}
+  {% set status_color = '#9ca3af' %}
 {% endif %}
 
 <div class="container py-4 py-md-5">
   <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
 
-      {# Demo Mode Indicator if applicable #}
+      <!-- ─── Journey Progress ─────────────────────────────────────── -->
+      <div class="journey-track mb-4">
+          <span class="journey-step done"><i class="bi bi-house-fill"></i> Home</span>
+          <span class="journey-sep">›</span>
+          <span class="journey-step done"><i class="bi bi-file-earmark-medical-fill"></i> Prescription</span>
+          <span class="journey-sep">›</span>
+          <span class="journey-step done"><i class="bi bi-capsule-pill"></i> Medicine Check</span>
+          <span class="journey-sep">›</span>
+          <span class="journey-step active"><i class="bi bi-shield-check"></i> Result</span>
+      </div>
+
+      {# Demo Mode Banner #}
       {% if check_data.get('is_demo') %}
       <div class="alert alert-info border-0 rounded-4 p-3 mb-4 d-flex align-items-center justify-content-between shadow-xs">
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary">Demo Mode</span>
-            <span class="small fw-semibold text-dark">{{ check_data.get('demo_title') }}</span>
-        </div>
-        <a href="{{ url_for('demo.index') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-            <i class="bi bi-grid me-1"></i>All Scenarios
-        </a>
+          <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary">Demo Mode</span>
+              <span class="small fw-semibold text-dark">{{ check_data.get('demo_title') }}</span>
+          </div>
+          <a href="{{ url_for('demo.index') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+              <i class="bi bi-grid me-1"></i>All Scenarios
+          </a>
       </div>
       {% endif %}
 
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# RESULT TITLE & MEDICINE LABEL                                   #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      <div class="d-flex align-items-center gap-2 mb-4">
-        <div class="brand-icon-box bg-primary text-white rounded-3 d-flex align-items-center justify-content-center">
-            <i class="bi bi-shield-plus fs-5"></i>
-        </div>
-        <div>
-          <span class="text-uppercase tracking-wider text-muted fw-bold small">MEDSAFE RESULT</span>
-          <h1 class="h3 fw-bold text-dark mb-0">
-            {{ check_data.medicine_name }}{% if check_data.strength %} <span class="text-muted fw-normal fs-5">({{ check_data.strength }})</span>{% endif %}
-          </h1>
-        </div>
-      </div>
-
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# MAIN STATUS BANNER (DETERMINISTIC RESULT)                       #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      <div class="result-hero {{ result_bg }} rounded-4 p-4 mb-4 shadow-sm">
-        <div class="d-flex align-items-start gap-3">
-          <i class="bi {{ status_icon }} result-icon flex-shrink-0"></i>
-          <div class="flex-grow-1">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <span class="badge bg-{{ status_class }} fs-6 px-3 py-2 fw-bold">{{ status }}</span>
-              <span class="fw-bold fs-5 text-dark">{{ status_label }}</span>
-            </div>
-            <p class="mb-3 text-secondary">{{ status_desc }}</p>
-
-            {# Confidence Pill #}
-            <div class="d-flex align-items-center gap-2">
-              <span class="badge bg-{{ conf_class }} bg-opacity-15 text-{{ conf_class }} border border-{{ conf_class }} px-3 py-2 rounded-pill fw-semibold">
-                <i class="bi {{ conf_icon }} me-1"></i>Confidence: {{ conf_label }}
-              </span>
-              {% if conf_label == 'Low' %}
-              <span class="small text-danger fw-medium">Manual verification encouraged</span>
-              {% endif %}
-            </div>
+      <!-- ─── Medicine Identity Card ──────────────────────────────── -->
+      <div class="medicine-identity-card p-4 mb-4 d-flex align-items-center gap-3">
+          <div style="width:52px;height:52px;border-radius:50%;background:rgba(2,132,199,0.12);
+                      display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-capsule-pill text-primary fs-4"></i>
           </div>
-        </div>
+          <div>
+              <div class="text-uppercase letter-spaced text-muted fw-bold mb-1" style="font-size:0.65rem;">
+                  <i class="bi bi-shield-plus me-1"></i>MEDSAFE RESULT
+              </div>
+              <h1 class="h3 fw-bold text-dark mb-0 tracking-tight">
+                  {{ check_data.medicine_name }}
+                  {% if check_data.strength %}
+                      <span class="text-muted fw-normal fs-5"> ({{ check_data.strength }})</span>
+                  {% endif %}
+              </h1>
+          </div>
       </div>
 
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 1. WHY? (REASON)                                                #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      <div class="result-card card border-0 shadow-sm rounded-4 mb-3">
-        <div class="card-body p-4">
-          <h2 class="h6 fw-bold text-uppercase text-muted letter-spaced mb-2">
-            <i class="bi bi-chat-left-text text-primary me-2"></i>Why this result?
-          </h2>
-          <p class="mb-0 text-dark fs-6">{{ safety.get('reason', 'Evaluation complete.') }}</p>
-        </div>
+      <!-- ═══════════════════════════════════════════════════════════
+           MAIN STATUS BANNER
+      ═══════════════════════════════════════════════════════════ -->
+      <div class="result-hero {{ result_bg }} rounded-4 p-4 mb-4 shadow-sm">
+          <div class="d-flex align-items-start gap-3">
+              <i class="bi {{ status_icon }} result-icon flex-shrink-0"></i>
+              <div class="flex-grow-1">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                      <span class="badge bg-{{ status_class }} status-badge">{{ status }}</span>
+                      <span class="fw-bold fs-5 text-dark">{{ status_label }}</span>
+                  </div>
+                  <p class="mb-3 text-secondary leading-relaxed">{{ status_desc }}</p>
+
+                  <!-- Confidence pill -->
+                  <div class="d-flex align-items-center flex-wrap gap-2">
+                      <span class="badge px-3 py-2 rounded-pill fw-semibold"
+                            style="background:rgba(255,255,255,0.7); color:inherit; border:1px solid {{ status_color }}40;">
+                          <i class="bi {{ conf_icon }} me-1"></i>Confidence: {{ conf_label }}
+                          <span class="ms-1 opacity-75">({{ conf_pct }}%)</span>
+                      </span>
+                      {% if conf_label == 'Low' %}
+                      <span class="small text-danger fw-semibold">
+                          <i class="bi bi-exclamation-triangle me-1"></i>Manual verification encouraged
+                      </span>
+                      {% endif %}
+                  </div>
+              </div>
+          </div>
       </div>
 
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 2. EVIDENCE & PRESCRIPTION COMPARISON                           #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      <div class="result-card card border-0 shadow-sm rounded-4 mb-3">
-        <div class="card-body p-4">
-          <h2 class="h6 fw-bold text-uppercase text-muted letter-spaced mb-3">
-            <i class="bi bi-journal-text text-primary me-2"></i>Evidence &amp; Comparison
-          </h2>
-          <div class="p-3 bg-light rounded-3 mb-3 small text-dark">
-            {{ safety.get('evidence', 'No additional evidence recorded.') }}
+      <!-- ═══════════════════════════════════════════════════════════
+           RECOMMENDED NEXT STEP  (prominent placement)
+      ═══════════════════════════════════════════════════════════ -->
+      {% if safety.get('recommended_next_step') %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4"
+           style="border-left: 5px solid {{ status_color }} !important; background: var(--bg-card);">
+          <div class="card-body p-4">
+              <div class="result-section-label text-{{ status_class }} mb-2">
+                  <i class="bi bi-arrow-right-circle-fill me-1"></i>Recommended Next Step
+              </div>
+              <p class="fw-bold text-dark fs-6 mb-0">{{ safety.recommended_next_step }}</p>
+          </div>
+      </div>
+      {% endif %}
+
+      <!-- ═══════════════════════════════════════════════════════════
+           WHY THIS RESULT
+      ═══════════════════════════════════════════════════════════ -->
+      <div class="result-card p-4 mb-3">
+          <div class="result-section-label text-muted mb-3">
+              <i class="bi bi-chat-left-text text-primary me-1"></i>Why This Result
+          </div>
+          <p class="mb-0 text-dark leading-relaxed">{{ safety.get('reason', 'Evaluation complete.') }}</p>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           EVIDENCE & PRESCRIPTION COMPARISON
+      ═══════════════════════════════════════════════════════════ -->
+      <div class="result-card p-4 mb-3">
+          <div class="result-section-label text-muted mb-3">
+              <i class="bi bi-journal-text text-primary me-1"></i>Evidence &amp; Comparison
+          </div>
+
+          <div class="evidence-block mb-3">
+              {{ safety.get('evidence', 'No additional evidence recorded.') }}
           </div>
 
           <dl class="result-dl row mb-0 small">
-            <dt class="col-sm-4 text-muted">Medicine Checked</dt>
-            <dd class="col-sm-8 fw-semibold text-dark">{{ check_data.medicine_name }} {% if check_data.strength %}({{ check_data.strength }}){% endif %}</dd>
-
-            {% if lookup.get('identified') %}
-            <dt class="col-sm-4 text-muted">Active Ingredient</dt>
-            <dd class="col-sm-8 text-dark">{{ lookup.active_ingredient }}</dd>
-
-            <dt class="col-sm-4 text-muted">Category</dt>
-            <dd class="col-sm-8 text-dark">{{ lookup.category }}</dd>
-            {% endif %}
-
-            <dt class="col-sm-4 text-muted">Discharge Match</dt>
-            <dd class="col-sm-8 text-dark">
-              {% if rx.get('found_exact') %}
-                <span class="badge bg-success-subtle text-success">Exact Match ({{ rx.matched_current_medicine }})</span>
-              {% elif rx.get('found_same_ingredient') %}
-                <span class="badge bg-danger-subtle text-danger">Duplicate Ingredient ({{ rx.matched_current_medicine }})</span>
-              {% else %}
-                <span class="badge bg-secondary-subtle text-secondary">Not in current prescription</span>
-              {% endif %}
-            </dd>
-          </dl>
-        </div>
-      </div>
-
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 3. CONFIDENCE LEVEL DETAILS                                     #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      <div class="result-card card border-0 shadow-sm rounded-4 mb-3">
-        <div class="card-body p-4">
-          <h2 class="h6 fw-bold text-uppercase text-muted letter-spaced mb-3">
-            <i class="bi bi-speedometer2 text-primary me-2"></i>Confidence
-          </h2>
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="badge bg-{{ conf_class }} px-3 py-2 fs-6 rounded-3">{{ conf_label }}</span>
-            <div class="flex-grow-1">
-              <div class="progress" style="height: 10px; border-radius: 6px;">
-                <div class="progress-bar bg-{{ conf_class }}"
-                     role="progressbar"
-                     style="width: {{ (conf * 100) | round(0) | int }}%"
-                     aria-valuenow="{{ (conf * 100) | round(0) | int }}"
-                     aria-valuemin="0" aria-valuemax="100">
-                </div>
-              </div>
-            </div>
-            <span class="text-muted small fw-medium">{{ (conf * 100) | round(0) | int }}%</span>
-          </div>
-          <p class="small text-muted mb-0">
-            <i class="bi bi-info-circle me-1"></i>
-            Confidence reflects how well the medicine was identified and matched against the dataset. It is <strong>not</strong> a measure of medical safety or clinical certainty.
-          </p>
-        </div>
-      </div>
-
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 4. RECOMMENDED NEXT STEP                                        #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      {% if safety.get('recommended_next_step') %}
-      <div class="result-card card border-{{ status_class }} shadow-sm rounded-4 mb-3">
-        <div class="card-body p-4">
-          <h2 class="h6 fw-bold text-uppercase text-{{ status_class }} letter-spaced mb-2">
-            <i class="bi bi-arrow-right-circle-fill me-2"></i>Recommended Next Step
-          </h2>
-          <p class="mb-0 fw-semibold text-dark fs-6">{{ safety.recommended_next_step }}</p>
-        </div>
-      </div>
-      {% endif %}
-
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 5. AI-ASSISTED EXPLANATION (ASSISTANCE LAYER ONLY)              #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      {% if ai and ai.get('explanation') %}
-      <div class="result-card card border-0 shadow-sm rounded-4 mb-4" style="background: #f8faff;">
-        <div class="card-body p-4">
-          <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-            <div class="d-flex align-items-center gap-2">
-              <i class="bi bi-stars text-primary fs-5"></i>
-              <h2 class="h6 fw-bold text-dark mb-0">AI-assisted explanation</h2>
-            </div>
-            {% if ai.get('ai_used') %}
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2">Gemini Assistance</span>
-            {% else %}
-            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2">Standard Engine</span>
-            {% endif %}
-          </div>
-          <p class="mb-3 text-dark fs-6 leading-relaxed">{{ ai.explanation }}</p>
-          <div class="p-2 bg-white rounded-3 border small text-muted">
-            <i class="bi bi-shield-exclamation text-secondary me-1"></i>
-            <strong>AI Assistance Notice:</strong> This explanation provides plain-language translation of the Safety Decision Engine result. It does not replace a doctor or pharmacist and does not constitute medical advice.
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 6. PROFESSIONAL ESCALATION (Step 9 Requirement for YELLOW/RED)  #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      {% if status in ['YELLOW', 'RED', 'GRAY'] %}
-      <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white border-top border-3 border-warning">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <div>
-            <h2 class="h6 fw-bold text-dark mb-1">
-              <i class="bi bi-person-lines-fill text-primary me-2"></i>Need confirmation?
-            </h2>
-            <p class="small text-muted mb-0">Speak with a qualified healthcare professional before taking this medication.</p>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-          <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#pharmacistModal">
-            <i class="bi bi-chat-heart me-1"></i>Ask a Pharmacist
-          </button>
-          <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#doctorModal">
-            <i class="bi bi-hospital me-1"></i>Contact Doctor
-          </button>
-          <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#summaryModal">
-            <i class="bi bi-printer me-1"></i>Show Summary
-          </button>
-        </div>
-      </div>
-      {% endif %}
-
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 7. COLLAPSIBLE SUBMISSION DETAILS                               #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      <details class="mb-4">
-        <summary class="result-summary text-muted small fw-medium py-2 px-1">
-          <i class="bi bi-list-check me-1"></i>View submitted details
-        </summary>
-        <div class="result-card card border-0 shadow-sm rounded-4 mt-2">
-          <div class="card-body p-4">
-            <dl class="result-dl row mb-0 small">
-              <dt class="col-sm-4 text-muted">Medicine entered</dt>
-              <dd class="col-sm-8 text-dark fw-medium">{{ check_data.medicine_name }}</dd>
-
-              {% if check_data.strength %}
-              <dt class="col-sm-4 text-muted">Strength entered</dt>
-              <dd class="col-sm-8 text-dark">{{ check_data.strength }}</dd>
-              {% endif %}
-
-              <dt class="col-sm-4 text-muted">Reason for reuse</dt>
-              <dd class="col-sm-8 text-dark">{{ check_data.reason or 'Not specified' }}</dd>
-
-              <dt class="col-sm-4 text-muted">Image uploaded</dt>
-              <dd class="col-sm-8">
-                {% if check_data.image_filename %}
-                <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Yes</span>
-                {% else %}
-                <span class="badge bg-secondary-subtle text-secondary">No</span>
-                {% endif %}
+              <dt class="col-sm-5">Medicine Checked</dt>
+              <dd class="col-sm-7 fw-semibold text-dark">
+                  {{ check_data.medicine_name }}
+                  {% if check_data.strength %} ({{ check_data.strength }}){% endif %}
               </dd>
-            </dl>
+
+              {% if lookup.get('identified') %}
+              <dt class="col-sm-5">Active Ingredient</dt>
+              <dd class="col-sm-7 text-dark">{{ lookup.active_ingredient }}</dd>
+
+              <dt class="col-sm-5">Medicine Category</dt>
+              <dd class="col-sm-7 text-dark">{{ lookup.category }}</dd>
+              {% endif %}
+
+              <dt class="col-sm-5">Discharge Prescription Match</dt>
+              <dd class="col-sm-7">
+                  {% if rx.get('found_exact') %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                          <i class="bi bi-check-circle me-1"></i>Exact Match
+                          {% if rx.matched_current_medicine %} — {{ rx.matched_current_medicine }}{% endif %}
+                      </span>
+                  {% elif rx.get('found_same_ingredient') %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                          <i class="bi bi-exclamation-circle me-1"></i>Duplicate Active Ingredient
+                          {% if rx.matched_current_medicine %} — {{ rx.matched_current_medicine }}{% endif %}
+                      </span>
+                  {% else %}
+                      <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                          <i class="bi bi-dash-circle me-1"></i>Not in current prescription
+                      </span>
+                  {% endif %}
+              </dd>
+          </dl>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           CONFIDENCE DETAILS
+      ═══════════════════════════════════════════════════════════ -->
+      <div class="result-card p-4 mb-3">
+          <div class="result-section-label text-muted mb-3">
+              <i class="bi bi-speedometer2 text-primary me-1"></i>Identification Confidence
           </div>
-        </div>
+
+          <div class="d-flex align-items-center gap-3 mb-3">
+              <span class="badge bg-{{ conf_class }} px-3 py-2 rounded-3 fw-bold">{{ conf_label }}</span>
+              <div class="flex-grow-1">
+                  <div class="progress conf-bar">
+                      <div class="progress-bar bg-{{ conf_class }}"
+                           role="progressbar"
+                           style="width: {{ conf_pct }}%"
+                           aria-valuenow="{{ conf_pct }}"
+                           aria-valuemin="0" aria-valuemax="100">
+                      </div>
+                  </div>
+              </div>
+              <span class="text-muted small fw-semibold" style="min-width:3rem;">{{ conf_pct }}%</span>
+          </div>
+
+          <div class="small text-muted p-2 bg-light rounded-3">
+              <i class="bi bi-info-circle me-1"></i>
+              Confidence reflects how well the medicine was identified in the dataset.
+              It is <strong>not</strong> a measure of clinical safety or medical certainty.
+              {% if conf_label == 'Low' %}
+              <strong class="text-danger">Low confidence — please verify with a pharmacist.</strong>
+              {% endif %}
+          </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           AI-ASSISTED EXPLANATION
+      ═══════════════════════════════════════════════════════════ -->
+      {% if ai and ai.get('explanation') %}
+      <div class="ai-card p-4 mb-4">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+              <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-stars text-primary fs-5"></i>
+                  <div>
+                      <div class="ai-label">AI-assisted explanation</div>
+                      <div class="fw-bold text-dark small">Plain-language translation</div>
+                  </div>
+              </div>
+              {% if ai.get('ai_used') %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 small">
+                  <i class="bi bi-stars me-1"></i>Gemini
+              </span>
+              {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 small">
+                  Standard
+              </span>
+              {% endif %}
+          </div>
+          <p class="mb-3 text-dark leading-relaxed">{{ ai.explanation }}</p>
+          <div class="p-2 bg-white rounded-3 border small text-muted">
+              <i class="bi bi-shield-exclamation text-secondary me-1"></i>
+              <strong>AI Assistance Notice:</strong> This explanation translates the Safety Engine result into simpler
+              language. It does not constitute medical advice and cannot override the Safety Engine decision.
+              <br><em>MedSafe does not replace a doctor or pharmacist.</em>
+          </div>
+      </div>
+      {% endif %}
+
+      <!-- ═══════════════════════════════════════════════════════════
+           PROFESSIONAL ESCALATION (YELLOW / RED / GRAY only)
+      ═══════════════════════════════════════════════════════════ -->
+      {% if status in ['YELLOW', 'RED', 'GRAY'] %}
+      <div class="escalation-block p-4 mb-4">
+          <div class="d-flex align-items-start gap-3 mb-3">
+              <i class="bi bi-person-lines-fill text-warning fs-4 flex-shrink-0"></i>
+              <div>
+                  <h2 class="h6 fw-bold text-dark mb-1">Speak to a Healthcare Professional</h2>
+                  <p class="small text-muted mb-0">
+                      Before taking this medicine, please consult a pharmacist or your prescribing doctor.
+                  </p>
+              </div>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 fw-semibold text-dark"
+                      data-bs-toggle="modal" data-bs-target="#pharmacistModal">
+                  <i class="bi bi-chat-heart me-1"></i>Ask a Pharmacist
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                      data-bs-toggle="modal" data-bs-target="#doctorModal">
+                  <i class="bi bi-hospital me-1"></i>Contact Doctor
+              </button>
+              <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3"
+                      data-bs-toggle="modal" data-bs-target="#summaryModal">
+                  <i class="bi bi-printer me-1"></i>Print Summary
+              </button>
+          </div>
+      </div>
+      {% endif %}
+
+      <!-- ═══════════════════════════════════════════════════════════
+           COLLAPSIBLE SUBMISSION DETAIL
+      ═══════════════════════════════════════════════════════════ -->
+      <details class="mb-4">
+          <summary class="result-summary text-muted small fw-medium py-2 px-1">
+              <i class="bi bi-list-check me-1"></i>View submitted details
+          </summary>
+          <div class="result-card mt-2 p-4">
+              <dl class="result-dl row mb-0 small">
+                  <dt class="col-sm-5">Medicine entered</dt>
+                  <dd class="col-sm-7 text-dark fw-medium">{{ check_data.medicine_name }}</dd>
+
+                  {% if check_data.strength %}
+                  <dt class="col-sm-5">Strength entered</dt>
+                  <dd class="col-sm-7 text-dark">{{ check_data.strength }}</dd>
+                  {% endif %}
+
+                  <dt class="col-sm-5">Reason for reuse</dt>
+                  <dd class="col-sm-7 text-dark">{{ check_data.reason or 'Not specified' }}</dd>
+
+                  <dt class="col-sm-5">Scan uploaded</dt>
+                  <dd class="col-sm-7">
+                      {% if check_data.image_filename %}
+                      <span class="badge bg-success-subtle text-success">
+                          <i class="bi bi-check-circle me-1"></i>Yes
+                      </span>
+                      {% else %}
+                      <span class="badge bg-secondary-subtle text-secondary">Manual entry</span>
+                      {% endif %}
+                  </dd>
+              </dl>
+          </div>
       </details>
 
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 8. DISCLAIMER & DEMO NOTICE                                     #}
-      {# ════════════════════════════════════════════════════════════════ #}
-      <div class="result-disclaimer rounded-4 p-4 mb-4 shadow-xs">
-        <div class="d-flex align-items-start gap-3">
-          <i class="bi bi-shield-exclamation fs-4 flex-shrink-0 text-warning"></i>
-          <div>
-            <p class="fw-semibold text-dark mb-1">
-              MedSafe is a medication decision-support prototype. It does not diagnose, prescribe, or replace professional medical advice.
-            </p>
-            <p class="small text-muted mb-0">
-              Always verify with your doctor or pharmacist before taking any medication. A medicine not found in this system is <em>unknown</em> — not confirmed safe.
-            </p>
+      <!-- ═══════════════════════════════════════════════════════════
+           DISCLAIMER
+      ═══════════════════════════════════════════════════════════ -->
+      <div class="result-disclaimer rounded-4 p-4 mb-4">
+          <div class="d-flex align-items-start gap-3">
+              <i class="bi bi-shield-exclamation fs-4 flex-shrink-0 text-warning"></i>
+              <div>
+                  <p class="fw-semibold text-dark mb-1">
+                      MedSafe is a medication decision-support prototype. It does not diagnose, prescribe,
+                      or replace professional medical advice.
+                  </p>
+                  <p class="small mb-0" style="opacity:0.8;">
+                      Always verify with your doctor or pharmacist before taking any medication.
+                      A medicine not found in this system is <em>unknown</em> — not confirmed safe.
+                  </p>
+              </div>
           </div>
-        </div>
       </div>
 
-      {# ════════════════════════════════════════════════════════════════ #}
-      {# 9. NAVIGATION ACTIONS                                           #}
-      {# ════════════════════════════════════════════════════════════════ #}
+      <!-- ═══════════════════════════════════════════════════════════
+           NAVIGATION ACTIONS
+      ═══════════════════════════════════════════════════════════ -->
       <div class="d-flex flex-wrap gap-3 pt-2">
-        <a href="{{ url_for('medicine.check') }}" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
-          <i class="bi bi-arrow-left me-2"></i>Check Another Medicine
-        </a>
-        <a href="{{ url_for('prescription.index') }}" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
-          <i class="bi bi-file-earmark-medical me-2"></i>View Current Prescription
-        </a>
-        <a href="{{ url_for('demo.index') }}" class="btn btn-outline-teal rounded-pill px-4 py-2 fw-semibold">
-          <i class="bi bi-lightning-charge me-1"></i>Demo Mode
-        </a>
+          <a href="{{ url_for('medicine.check') }}"
+             class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm">
+              <i class="bi bi-arrow-left me-2"></i>Check Another Medicine
+          </a>
+          <a href="{{ url_for('prescription.index') }}"
+             class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
+              <i class="bi bi-file-earmark-medical me-2"></i>View Current Prescription
+          </a>
+          <a href="{{ url_for('demo.index') }}"
+             class="btn btn-outline-teal rounded-pill px-4 py-2 fw-semibold">
+              <i class="bi bi-lightning-charge me-1"></i>Demo Scenarios
+          </a>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- ================================================================= -->
-<!-- ESCALATION MODALS (Step 9 Requirement)                            -->
-<!-- ================================================================= -->
+<!-- ═══════════════════════════════════════════════════════════
+     ESCALATION MODALS
+═══════════════════════════════════════════════════════════ -->
 
-<!-- Ask a Pharmacist Modal -->
-<div class="modal fade" id="pharmacistModal" tabindex="-1" aria-labelledby="pharmacistModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg rounded-4 p-3">
-      <div class="modal-header border-0 pb-0">
-        <h3 class="h5 fw-bold text-dark mb-0" id="pharmacistModalLabel">
-          <i class="bi bi-chat-heart text-primary me-2"></i>Ask a Pharmacist
-        </h3>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body py-3">
-        <p class="small text-muted mb-3">When speaking to your community or hospital pharmacist, you can share:</p>
-        <div class="p-3 bg-light rounded-3 small mb-3">
-          <div class="fw-semibold text-dark mb-1">Suggested Question:</div>
-          <div class="fst-italic text-secondary">
-            "I recently left the hospital with a new discharge plan. I found my older <strong>{{ check_data.medicine_name }}</strong> at home. Can you check whether it is safe to combine with my new prescription or if it is a duplicate?"
-          </div>
+<!-- Ask Pharmacist -->
+<div class="modal fade" id="pharmacistModal" tabindex="-1"
+     aria-labelledby="pharmacistModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3">
+            <div class="modal-header border-0 pb-0">
+                <h3 class="h5 fw-bold text-dark mb-0" id="pharmacistModalLabel">
+                    <i class="bi bi-chat-heart text-warning me-2"></i>Ask a Pharmacist
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="small text-muted mb-3">
+                    When speaking to your community or hospital pharmacist, consider sharing the following:
+                </p>
+                <div class="p-3 bg-light rounded-3 small mb-3 border">
+                    <div class="fw-semibold text-dark mb-1">Suggested question:</div>
+                    <div class="fst-italic text-secondary">
+                        "I was recently discharged from hospital with a new prescription.
+                        I found my older <strong>{{ check_data.medicine_name }}</strong> at home.
+                        Can you check whether it is safe to combine with my new medication, or if it's a duplicate?"
+                    </div>
+                </div>
+                <ul class="small text-muted ps-3 mb-0">
+                    <li>Bring the original packaging with batch number and expiry date.</li>
+                    <li>Bring your printed or digital discharge medication summary.</li>
+                    <li>Mention any allergies or other medicines you take.</li>
+                </ul>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-warning btn-sm rounded-pill px-4 text-dark fw-semibold"
+                        data-bs-dismiss="modal">Understood</button>
+            </div>
         </div>
-        <ul class="small text-muted ps-3 mb-0">
-          <li>Bring the original packaging/strip with batch &amp; expiry date.</li>
-          <li>Bring your printed discharge medication summary.</li>
-        </ul>
-      </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn btn-primary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
-      </div>
     </div>
-  </div>
 </div>
 
-<!-- Contact Doctor Modal -->
-<div class="modal fade" id="doctorModal" tabindex="-1" aria-labelledby="doctorModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg rounded-4 p-3">
-      <div class="modal-header border-0 pb-0">
-        <h3 class="h5 fw-bold text-dark mb-0" id="doctorModalLabel">
-          <i class="bi bi-hospital text-primary me-2"></i>Contact Prescribing Doctor
-        </h3>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body py-3">
-        <p class="small text-muted mb-3">Questions for your physician or clinic team:</p>
-        <div class="p-3 bg-light rounded-3 small mb-3">
-          <div class="fw-semibold text-dark mb-1">Key Discussion Points:</div>
-          <ul class="mb-0 ps-3 text-secondary">
-            <li>Was <strong>{{ check_data.medicine_name }}</strong> intentionally discontinued during discharge?</li>
-            <li>Should the dose be adjusted if restarting?</li>
-            <li>Are there known contraindications with your new therapy?</li>
-          </ul>
+<!-- Contact Doctor -->
+<div class="modal fade" id="doctorModal" tabindex="-1"
+     aria-labelledby="doctorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3">
+            <div class="modal-header border-0 pb-0">
+                <h3 class="h5 fw-bold text-dark mb-0" id="doctorModalLabel">
+                    <i class="bi bi-hospital text-primary me-2"></i>Contact Prescribing Doctor
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="small text-muted mb-3">Key discussion points for your physician or clinic team:</p>
+                <div class="p-3 bg-light rounded-3 small mb-3 border">
+                    <ul class="mb-0 ps-3 text-secondary">
+                        <li>Was <strong>{{ check_data.medicine_name }}</strong> intentionally discontinued at discharge?</li>
+                        <li>Should the dose be adjusted if restarting?</li>
+                        <li>Are there known contraindications with your new therapy?</li>
+                        <li>Is it safe to take alongside your current medicines?</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4"
+                        data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
-      </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn btn-primary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
-      </div>
     </div>
-  </div>
 </div>
 
-<!-- Summary / Print Modal -->
-<div class="modal fade" id="summaryModal" tabindex="-1" aria-labelledby="summaryModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg rounded-4 p-3">
-      <div class="modal-header border-0 pb-0">
-        <h3 class="h5 fw-bold text-dark mb-0" id="summaryModalLabel">
-          <i class="bi bi-file-earmark-medical text-primary me-2"></i>MedSafe Check Summary
-        </h3>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body py-3">
-        <div class="p-3 border rounded-3 small bg-white">
-          <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
-            <span class="fw-bold">MedSafe Checkpoint</span>
-            <span class="badge bg-{{ status_class }}">{{ status }}</span>
-          </div>
-          <div><strong>Medicine:</strong> {{ check_data.medicine_name }} {{ check_data.strength or '' }}</div>
-          <div><strong>Status:</strong> {{ status_label }}</div>
-          <div><strong>Confidence:</strong> {{ conf_label }}</div>
-          <div><strong>Reason:</strong> {{ safety.get('reason', '') }}</div>
-          <div class="mt-2 text-muted fst-italic">"{{ safety.get('recommended_next_step', '') }}"</div>
+<!-- Print Summary -->
+<div class="modal fade" id="summaryModal" tabindex="-1"
+     aria-labelledby="summaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-3">
+            <div class="modal-header border-0 pb-0">
+                <h3 class="h5 fw-bold text-dark mb-0" id="summaryModalLabel">
+                    <i class="bi bi-file-earmark-medical text-primary me-2"></i>MedSafe Check Summary
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="p-3 border rounded-3 small bg-white">
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="fw-bold">MedSafe Safety Checkpoint</span>
+                        <span class="badge bg-{{ status_class }}">{{ status }}</span>
+                    </div>
+                    <div><strong>Medicine:</strong> {{ check_data.medicine_name }} {{ check_data.strength or '' }}</div>
+                    <div><strong>Status:</strong> {{ status_label }}</div>
+                    <div><strong>Confidence:</strong> {{ conf_label }} ({{ conf_pct }}%)</div>
+                    <div><strong>Reason:</strong> {{ safety.get('reason', '') }}</div>
+                    {% if safety.get('recommended_next_step') %}
+                    <div class="mt-2 fst-italic text-muted">
+                        <strong>Next Step:</strong> "{{ safety.recommended_next_step }}"
+                    </div>
+                    {% endif %}
+                    <div class="mt-3 pt-2 border-top text-muted small fst-italic">
+                        MedSafe is a decision-support prototype. This summary is for reference only and
+                        does not constitute medical advice.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill"
+                        onclick="window.print();">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4"
+                        data-bs-dismiss="modal">Done</button>
+            </div>
         </div>
-      </div>
-      <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
-        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" onclick="window.print();">
-          <i class="bi bi-printer me-1"></i>Print Summary
-        </button>
-        <button type="button" class="btn btn-primary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Done</button>
-      </div>
     </div>
-  </div>
 </div>
+
 {% endblock %}
